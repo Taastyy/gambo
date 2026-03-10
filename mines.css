@@ -1,0 +1,1085 @@
+/**
+ * ==========================================================================
+ * Mines Game Styles - Casino Edition
+ * 
+ * Matching the visual style of Blackjack and Roulette games
+ * with a classic casino aesthetic.
+ * 
+ * @author Mines Game
+ * @version 1.1.0
+ * @date 2026
+ * ==========================================================================
+ */
+
+/* ==========================================================================
+   CSS Variables - Matching Casino Theme
+   ========================================================================== */
+:root {
+    --primary-color: #1a5f2a;
+    --primary-dark: #0d3d1a;
+    --secondary-color: #d4af37;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --dark-color: #1a1a2e;
+    --light-color: #f8f9fa;
+    --green-color: #228b22;
+    --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-dark: 0 4px 15px rgba(0, 0, 0, 0.4);
+    --transition-fast: all 0.2s ease;
+    --border-radius: 8px;
+}
+
+/* ==========================================================================
+   Global Reset
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1a1a2e;
+    color: var(--light-color);
+    line-height: 1.4;
+    font-size: 14px;
+}
+
+/* ==========================================================================
+   Game Container
+   ========================================================================== */
+.game-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    grid-template-rows: auto auto 1fr auto;
+    gap: 10px;
+}
+
+/* ==========================================================================
+   Navigation
+   ========================================================================== */
+.game-nav {
+    grid-column: 1 / -1;
+    grid-row: 1 / 2;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius);
+}
+
+.nav-link {
+    padding: 10px 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    background: #2d2d2d;
+    color: var(--light-color);
+    border: 2px solid transparent;
+    transition: var(--transition-fast);
+}
+
+.nav-link:hover {
+    background: #3d3d3d;
+    border-color: var(--secondary-color);
+}
+
+.nav-link.active {
+    background: var(--primary-color);
+    border-color: var(--secondary-color);
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.game-header {
+    grid-column: 1 / -1;
+    grid-row: 2 / 3;
+    text-align: center;
+    background: var(--primary-dark);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-dark);
+    border: 2px solid var(--secondary-color);
+}
+
+.game-header h1 {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    color: var(--secondary-color);
+}
+
+.score-panel {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.score-item {
+    text-align: center;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    min-width: 80px;
+}
+
+.score-label {
+    display: block;
+    font-size: 0.75em;
+    color: #aaa;
+    margin-bottom: 3px;
+}
+
+.score-value {
+    display: block;
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+/* ==========================================================================
+   Game Table - Casino Style
+   ========================================================================== */
+.game-table {
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
+    background: linear-gradient(145deg, #1a5f2a 0%, #0d3d1a 100%);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    box-shadow: var(--shadow-dark);
+    border: 5px solid #8b4513;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-table::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: 60%;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   Game Message
+   ========================================================================== */
+.game-message {
+    text-align: center;
+    padding: 12px;
+    font-size: 1.1em;
+    font-weight: bold;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    border-radius: var(--border-radius);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.game-message.win {
+    color: var(--success-color);
+    text-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+}
+
+.game-message.lose {
+    color: var(--danger-color);
+    text-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
+}
+
+.game-message.spinning {
+    color: var(--secondary-color);
+}
+
+/* ==========================================================================
+   Bet Controls
+   ========================================================================== */
+.bet-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quick-bets {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.bet-btn {
+    min-width: 42px;
+    height: 36px;
+    border: none;
+    border-radius: 4px;
+    background: var(--secondary-color);
+    color: var(--dark-color);
+    font-weight: bold;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: 0 12px;
+}
+
+.bet-btn:hover:not(:disabled) {
+    background: #e5c14a;
+    transform: scale(1.05);
+}
+
+.bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.quick-bet {
+    background: #2d6a4f;
+    color: white;
+    font-weight: bold;
+}
+
+.quick-bet:hover {
+    background: #40916c;
+}
+
+.bet-input {
+    width: 90px;
+    height: 36px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--light-color);
+    font-size: 1em;
+    font-weight: bold;
+    text-align: center;
+    padding: 0 8px;
+}
+
+.bet-input:focus {
+    outline: none;
+    border-color: #e5c14a;
+}
+
+.bet-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background: #6c757d;
+    color: white;
+    font-weight: bold;
+}
+
+.action-btn:hover {
+    background: #adb5bd;
+}
+
+.action-btn.all-in {
+    background: var(--danger-color);
+    color: white;
+    min-width: 80px;
+}
+
+.action-btn.all-in:hover {
+    background: #e4606d;
+}
+
+/* ==========================================================================
+   Multiplier Section
+   ========================================================================== */
+.multiplier-section {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 2px solid rgba(212, 175, 55, 0.3);
+}
+
+.multiplier-display {
+    text-align: center;
+}
+
+.multiplier-label {
+    display: block;
+    font-size: 0.8em;
+    color: #aaa;
+    margin-bottom: 4px;
+}
+
+.multiplier-value {
+    display: block;
+    font-size: 1.6em;
+    font-weight: bold;
+    color: var(--secondary-color);
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.potential-win {
+    text-align: center;
+}
+
+.win-label {
+    display: block;
+    font-size: 0.8em;
+    color: #aaa;
+    margin-bottom: 4px;
+}
+
+.win-amount {
+    display: block;
+    font-size: 1.6em;
+    font-weight: bold;
+    color: var(--success-color);
+    text-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
+/* ==========================================================================
+   Mines Grid Section
+   ========================================================================== */
+.mines-grid-section {
+    margin-bottom: 15px;
+}
+
+.mines-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.probability-toggle {
+    margin-left: 15px;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: var(--light-color);
+}
+
+.toggle-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--secondary-color);
+}
+
+.probability-display {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 0.65em;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* High probability (80%+) - GRÜN + GLOW */
+.mine-tile.prob-high .probability-display {
+    background: rgba(40, 167, 69, 0.9);
+}
+
+.mine-tile.prob-high {
+    border-color: rgba(40, 167, 69, 0.8) !important;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.5), inset 0 0 10px rgba(40, 167, 69, 0.2);
+}
+
+.mine-tile.prob-high::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 6px;
+    box-shadow: inset 0 0 15px rgba(40, 167, 69, 0.4);
+    pointer-events: none;
+}
+
+/* Medium probability (50-80%) - GELB */
+.mine-tile.prob-medium .probability-display {
+    background: rgba(255, 193, 7, 0.9);
+    color: #333;
+}
+
+.mine-tile.prob-medium {
+    border-color: rgba(255, 193, 7, 0.8) !important;
+}
+
+/* Low probability (30-50%) - ORANGE */
+.mine-tile.prob-low .probability-display {
+    background: rgba(255, 152, 0, 0.9);
+}
+
+.mine-tile.prob-low {
+    border-color: rgba(255, 152, 0, 0.8) !important;
+}
+
+/* Danger probability (<30%) - ROT */
+.mine-tile.prob-danger .probability-display {
+    background: rgba(220, 53, 69, 0.9);
+}
+
+.mine-tile.prob-danger {
+    border-color: rgba(220, 53, 69, 0.8) !important;
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+}
+
+@keyframes pulse-danger {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Hide probability when tile is revealed */
+.mine-tile.safe .probability-display,
+.mine-tile.mine .probability-display {
+    display: none;
+}
+
+/* Probability enabled state for hidden tiles */
+.mine-tile.hidden.prob-extreme:hover,
+.mine-tile.hidden.prob-high:hover,
+.mine-tile.hidden.prob-medium:hover,
+.mine-tile.hidden.prob-low:hover,
+.mine-tile.hidden.prob-danger:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Enhanced hover for extreme probability */
+.mine-tile.hidden.prob-extreme:hover {
+    box-shadow: 0 8px 25px rgba(50, 205, 50, 0.7), inset 0 0 20px rgba(50, 205, 50, 0.4);
+}
+
+/* Grüner Glow für sehr sichere Felder (90%+) */
+.mine-tile.prob-extreme {
+    border-color: rgba(50, 205, 50, 1) !important;
+    box-shadow: 0 0 15px rgba(50, 205, 50, 0.6), inset 0 0 15px rgba(50, 205, 50, 0.3);
+    animation: glow-green 2s ease-in-out infinite;
+}
+
+.mine-tile.prob-extreme::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 6px;
+    box-shadow: inset 0 0 20px rgba(50, 205, 50, 0.5);
+    pointer-events: none;
+}
+
+@keyframes glow-green {
+    0%, 100% {
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6), inset 0 0 15px rgba(50, 205, 50, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(50, 205, 50, 0.8), inset 0 0 20px rgba(50, 205, 50, 0.4);
+    }
+}
+
+.mines-count-label {
+    font-size: 1em;
+    font-weight: bold;
+    color: var(--light-color);
+}
+
+.mines-select {
+    padding: 8px 15px;
+    font-size: 1em;
+    font-weight: bold;
+    border: 2px solid var(--secondary-color);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--light-color);
+    cursor: pointer;
+}
+
+.mines-select:focus {
+    outline: none;
+    border-color: #e5c14a;
+}
+
+.mines-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    border: 3px solid #8b4513;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================================================
+   Mines Grid Tiles
+   ========================================================================== */
+.mine-tile {
+    width: 62px;
+    height: 62px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hidden tile state */
+.mine-tile.hidden {
+    background: linear-gradient(145deg, #3d3d5c 0%, #2d2d4a 100%);
+    border: 3px solid #5a5a7a;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+.mine-tile.hidden:hover {
+    background: linear-gradient(145deg, #4d4d6c 0%, #3d3d5a 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Override hover border for probability tiles */
+.mine-tile.hidden.prob-extreme:hover,
+.mine-tile.hidden.prob-high:hover,
+.mine-tile.hidden.prob-medium:hover,
+.mine-tile.hidden.prob-low:hover,
+.mine-tile.hidden.prob-danger:hover {
+    border-color: inherit !important;
+}
+
+.mine-tile.hidden:active {
+    transform: translateY(0);
+}
+
+/* Safe tile revealed */
+.mine-tile.safe {
+    background: linear-gradient(145deg, #2d5a3d 0%, #1d4a2d 100%);
+    border: 3px solid #3d7a5d;
+    box-shadow: inset 0 0 15px rgba(40, 167, 69, 0.3);
+    animation: revealTile 0.3s ease-out;
+}
+
+@keyframes revealTile {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Mine tile revealed (game over) */
+.mine-tile.mine {
+    background: linear-gradient(145deg, #5a2d2d 0%, #4a1d1d 100%);
+    border: 3px solid #7a3d3d;
+    animation: explodeTile 0.5s ease-out;
+}
+
+@keyframes explodeTile {
+    0% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.35);
+        background: #ff4444;
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Star on safe tile */
+.mine-tile.safe::after {
+    content: '⭐';
+    font-size: 1.5em;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Bomb on mine tile */
+.mine-tile.mine::after {
+    content: '💣';
+    font-size: 1.5em;
+}
+
+/* ==========================================================================
+   Action Buttons
+   ========================================================================== */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.btn {
+    padding: 12px 20px;
+    font-size: 0.95em;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 130px;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-dark);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-primary {
+    background: var(--danger-color);
+    color: white;
+    border: 2px solid var(--secondary-color);
+    font-size: 1em;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #e4606d;
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    border: 2px solid var(--secondary-color);
+    animation: pulse-green 1s infinite alternate;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #34ce57;
+}
+
+.btn-warning {
+    background: linear-gradient(180deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+    border: 2px solid var(--secondary-color);
+}
+
+.btn-warning:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffcd39 0%, #ffc107 100%);
+}
+
+@keyframes pulse-green {
+    from {
+        box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    }
+    to {
+        box-shadow: 0 0 20px rgba(40, 167, 69, 0.8);
+    }
+}
+
+/* ==========================================================================
+   Rules Panel
+   ========================================================================== */
+.rules-panel {
+    grid-row: 3 / 4;
+    background: rgba(26, 26, 46, 0.9);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    box-shadow: var(--shadow-dark);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+}
+
+.rules-panel h3 {
+    color: var(--secondary-color);
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    text-align: center;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 8px;
+}
+
+.rules-panel ul {
+    list-style: none;
+}
+
+.rules-panel li {
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.rules-panel li:last-child {
+    border-bottom: none;
+}
+
+.rules-panel li::before {
+    content: '💣 ';
+}
+
+.payout-table {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.payout-table h4 {
+    color: var(--secondary-color);
+    margin-bottom: 8px;
+    font-size: 0.95em;
+    text-align: center;
+}
+
+.payout-table table {
+    width: 100%;
+    font-size: 0.8em;
+}
+
+.payout-table td {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.payout-table td:last-child {
+    text-align: right;
+    color: var(--secondary-color);
+    font-weight: bold;
+}
+
+/* ==========================================================================
+   Game History
+   ========================================================================== */
+.game-history {
+    grid-column: 1 / -1;
+    grid-row: 4 / 5;
+    background: rgba(26, 26, 46, 0.9);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    box-shadow: var(--shadow-dark);
+}
+
+.game-history h3 {
+    color: var(--secondary-color);
+    margin-bottom: 10px;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+}
+
+#history-list {
+    list-style: none;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+#history-list li {
+    min-width: 100px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+#history-list li.win {
+    border-left: 3px solid var(--success-color);
+}
+
+#history-list li.lose {
+    border-left: 3px solid var(--danger-color);
+}
+
+/* ==========================================================================
+   Stats Button
+   ========================================================================== */
+.stats-btn {
+    padding: 6px 10px;
+    font-size: 0.8em;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    background: var(--secondary-color);
+    color: var(--dark-color);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    margin-left: 10px;
+}
+
+.stats-btn:hover {
+    background: #e5c14a;
+    transform: scale(1.03);
+}
+
+/* ==========================================================================
+   Stats Modal
+   ========================================================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.stats-modal {
+    display: none;
+    background: #1a1a2e;
+    border-radius: var(--border-radius);
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--shadow-dark);
+    border: 3px solid var(--secondary-color);
+}
+
+.stats-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--primary-dark);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+    border-bottom: 2px solid var(--secondary-color);
+}
+
+.stats-modal-header h2 {
+    color: var(--secondary-color);
+    margin: 0;
+    font-size: 1.3em;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    color: var(--light-color);
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: var(--danger-color);
+    transform: scale(1.1);
+}
+
+.stats-modal-body {
+    padding: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.stat-item {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75em;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.4em;
+    font-weight: bold;
+    color: var(--light-color);
+}
+
+.stat-value.win {
+    color: var(--success-color);
+}
+
+.stat-value.lose {
+    color: var(--danger-color);
+}
+
+.stat-value.positive {
+    color: var(--success-color);
+}
+
+.stat-value.negative {
+    color: var(--danger-color);
+}
+
+.stats-actions {
+    text-align: center;
+}
+
+.stats-actions .btn {
+    min-width: 200px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ==========================================================================
+   Scrollbar Styling
+   ========================================================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #e5c14a;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+@media (max-width: 900px) {
+    .game-container {
+        grid-template-columns: 1fr;
+    }
+
+    .rules-panel {
+        order: -1;
+    }
+
+    .mines-grid {
+        max-width: 320px;
+        gap: 6px;
+        padding: 12px;
+    }
+
+    .mine-tile {
+        width: 52px;
+        height: 52px;
+        font-size: 1.4em;
+    }
+
+    .mine-tile::after {
+        font-size: 1.3em;
+    }
+
+    .multiplier-section {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .game-nav {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .nav-link {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .game-header h1 {
+        font-size: 1.5em;
+    }
+
+    .mine-tile {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2em;
+    }
+
+    .mine-tile::after {
+        font-size: 1.1em;
+    }
+
+    .mines-grid {
+        max-width: 280px;
+        gap: 5px;
+        padding: 10px;
+    }
+
+    .multiplier-value,
+    .win-amount {
+        font-size: 1.4em;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn {
+        min-width: 100px;
+        padding: 10px 15px;
+        font-size: 0.85em;
+    }
+}

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - Casino Games</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shop.css">
+</head>
+<body>
+    <div class="shop-container">
+        <!-- Navigation -->
+        <nav class="shop-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header -->
+        <header class="shop-header">
+            <h1>🛒 Shop</h1>
+            <p>Kaufe coole Items mit deinen Gewinnen!</p>
+            <div class="balance-display">
+                <span>💰 Balance: <span id="balance-amount">1000</span></span>
+            </div>
+        </header>
+
+        <!-- Inventory -->
+        <section class="inventory-section">
+            <h2>🎒 Dein Inventar</h2>
+            <div id="inventory-grid" class="inventory-grid">
+                <p class="empty-inventory">Dein Inventar ist noch leer. Kaufe Items im Shop!</p>
+            </div>
+        </section>
+
+        <!-- Shop Items -->
+        <section class="shop-section">
+            <h2>🛍️ Shop Items</h2>
+            <div id="shop-grid" class="shop-grid">
+                <!-- Items werden per JavaScript geladen -->
+            </div>
+        </section>
+
+        <!-- Notification -->
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script src="shop.js"></script>
+</body>
+</html>

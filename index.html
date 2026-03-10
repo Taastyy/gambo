@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Games Menu</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="menu-container">
+        <!-- Header Section -->
+        <header class="menu-header">
+            <h1>🎰 Casino Games 🎰</h1>
+            <p>Wähle dein Lieblingsspiel und beginne zu spielen!</p>
+            
+            <div class="header-actions">
+                <a href="shop.html" class="shop-btn">
+                    🛒 Shop besuchen
+                </a>
+                <button id="reset-balance-btn" class="reset-btn">
+                    🔄 Balance Zurücksetzen
+                </button>
+                <div class="balance-display">
+                    <span>💰 Balance: <span id="balance-amount">1000</span></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Games Grid -->
+        <main class="games-grid">
+            <!-- Blackjack -->
+            <a href="blackjack.html" class="game-card blackjack">
+                <span class="icon">♠️</span>
+                <h2>Blackjack</h2>
+                <p>Das klassische Kartenspiel. Versuche, so nah wie möglich an 21 zu kommen!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Roulette -->
+            <a href="roulette.html" class="game-card roulette">
+                <span class="icon">🎡</span>
+                <h2>Roulette</h2>
+                <p>Setze auf deine Glückszahl und beobachte, wie die Kugel rollt!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Mines -->
+            <a href="mines.html" class="game-card mines">
+                <span class="icon">💣</span>
+                <h2>Mines</h2>
+                <p>Finde die sicheren Felder und vermeide die Minen!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Crash -->
+            <a href="crash.html" class="game-card crash">
+                <span class="icon">📈</span>
+                <h2>Crash</h2>
+                <p>Wie hoch kann der Multiplier steigen, bevor er abstürzt?</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Plinko -->
+            <a href="plinko.html" class="game-card plinko">
+                <span class="icon">🎯</span>
+                <h2>Plinko</h2>
+                <p>Lass den Ball durch die Stifte fallen und gewinne!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Bandit -->
+            <a href="bandit.html" class="game-card bandit">
+                <span class="icon">🎰</span>
+                <h2>Bandit</h2>
+                <p>Der einarmige Bandit. Drehe die Walzen und hoffe auf den Jackpot!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Dice -->
+            <a href="dice.html" class="game-card dice">
+                <span class="icon">🎲</span>
+                <h2>Dice</h2>
+                <p>Würfelspiel. Setze hoch oder niedrig und teste dein Glück!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Horse Racing -->
+            <a href="horse.html" class="game-card horse">
+                <span class="icon">🐎</span>
+                <h2>Pferderennen</h2>
+                <p>Wette auf dein Lieblingspferd und feiere den Sieg!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Lotto -->
+            <a href="lotto.html" class="game-card lotto">
+                <span class="icon">🎰</span>
+                <h2>Lotto</h2>
+                <p>Wähle 6 aus 49 + Zusatzzahl. Jackpot: 14 Millionen!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Coinflip -->
+            <a href="coinflip.html" class="game-card coinflip">
+                <span class="icon">🪙</span>
+                <h2>Coinflip</h2>
+                <p>Einfaches Münzwurfspiel. Kopf oder Zahl - wer gewinnt?</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Road -->
+            <a href="road.html" class="game-card road">
+                <span class="icon">🛤️</span>
+                <h2>Road</h2>
+                <p>Überlebe so viele Schritte wie möglich und cashe aus!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+            <!-- Stocks -->
+            <a href="stocks.html" class="game-card stocks">
+                <span class="icon">📈</span>
+                <h2>Aktien</h2>
+                <p>Simuliere Aktienhandel und baue dein Portfolio auf!</p>
+                <span class="play-btn">Jetzt Spielen</span>
+            </a>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="menu-footer">
+            <p>🎲 Viel Glück beim Spielen!</p>
+        </footer>
+    </div>
+
+    <script src="balance.js"></script>
+    <script src="index.js"></script>
+</body>
+</html>

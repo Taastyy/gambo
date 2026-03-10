@@ -1,0 +1,425 @@
+/* ==========================================================================
+   Index/Menu Styles
+   ========================================================================== */
+
+/* CSS Variables - Modern Color Scheme */
+:root {
+    --primary-color: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary-color: #d4af37;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --dark-color: #0f172a;
+    --light-color: #f1f5f9;
+}
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    color: var(--light-color);
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   Menu Page Styles
+   ========================================================================== */
+
+.menu-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.menu-header {
+    text-align: center;
+    padding: 40px 20px;
+    margin-bottom: 30px;
+}
+
+.header-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.shop-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    font-weight: bold;
+    font-size: 1.1em;
+    border-radius: 30px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 3px solid #34d399;
+    box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4);
+    animation: pulse 2s ease-in-out infinite;
+    cursor: pointer;
+}
+
+.shop-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.6);
+}
+
+/* Reset Balance Button */
+.reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 30px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    font-weight: bold;
+    font-size: 1.1em;
+    border-radius: 30px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 3px solid #f87171;
+    box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4);
+    cursor: pointer;
+}
+
+.reset-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6);
+    background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+.reset-btn:active {
+    transform: scale(0.95);
+}
+
+@keyframes warningPulse {
+    0%, 100% { box-shadow: 0 5px 20px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 5px 30px rgba(239, 68, 68, 0.7); }
+}
+
+.reset-btn {
+    animation: warningPulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 5px 20px rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 5px 30px rgba(16, 185, 129, 0.7); }
+}
+
+.menu-header h1 {
+    font-size: 3em;
+    margin-bottom: 15px;
+    background: linear-gradient(180deg, var(--secondary-color) 0%, #b8960c 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+.menu-header p {
+    font-size: 1.2em;
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
+.balance-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 25px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 30px;
+    border: 2px solid var(--secondary-color);
+}
+
+.balance-display span {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    padding: 20px 0;
+}
+
+.game-card {
+    position: relative;
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 16px;
+    padding: 30px 25px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--light-color);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    overflow: hidden;
+}
+
+.game-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(212, 175, 55, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.game-card:hover::before {
+    opacity: 1;
+}
+
+.game-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: var(--secondary-color);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(212, 175, 55, 0.3);
+}
+
+.game-card .icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+    display: block;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+.game-card:hover .icon {
+    animation: bounce 0.5s ease-in-out infinite;
+}
+
+.game-card h2 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: var(--secondary-color);
+    position: relative;
+    z-index: 1;
+}
+
+.game-card p {
+    font-size: 0.95em;
+    color: #aaa;
+    line-height: 1.5;
+    position: relative;
+    z-index: 1;
+}
+
+.game-card .play-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    font-weight: bold;
+    border-radius: 25px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.game-card:hover .play-btn {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, #b8960c 100%);
+    color: var(--dark-color);
+    transform: scale(1.05);
+}
+
+/* Special card styles for different games */
+.game-card.blackjack {
+    border-color: rgba(212, 175, 55, 0.4);
+}
+
+.game-card.roulette {
+    border-color: rgba(220, 53, 69, 0.4);
+}
+
+.game-card.mines {
+    border-color: rgba(40, 167, 69, 0.4);
+}
+
+.game-card.crash {
+    border-color: rgba(255, 193, 7, 0.4);
+}
+
+.game-card.plinko {
+    border-color: rgba(23, 162, 184, 0.4);
+}
+
+.game-card.bandit {
+    border-color: rgba(111, 66, 193, 0.4);
+}
+
+.game-card.dice {
+    border-color: rgba(253, 126, 20, 0.4);
+}
+
+.game-card.horse {
+    border-color: rgba(102, 16, 242, 0.4);
+}
+
+.game-card.blackjack:hover { border-color: #d4af37; }
+.game-card.roulette:hover { border-color: #dc3545; }
+.game-card.mines:hover { border-color: #28a745; }
+.game-card.crash:hover { border-color: #ffc107; }
+.game-card.plinko:hover { border-color: #17a2b8; }
+.game-card.bandit:hover { border-color: #6f42c1; }
+.game-card.dice:hover { border-color: #fd7e14; }
+.game-card.horse:hover { border-color: #660af2; }
+
+.game-card.lotto {
+    border-color: rgba(230, 57, 70, 0.4);
+}
+
+.game-card.lotto:hover { border-color: #e63946; }
+
+.game-card.coinflip {
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.game-card.coinflip:hover { border-color: #ffd700; }
+
+.game-card.road {
+    border-color: rgba(255, 165, 0, 0.4);
+}
+
+.game-card.road:hover { border-color: #ffa500; }
+
+.game-card.stocks {
+    border-color: rgba(0, 123, 255, 0.4);
+}
+
+.game-card.stocks:hover { border-color: #007bff; }
+
+/* Special card styles end */
+
+.menu-footer {
+    text-align: center;
+    padding: 40px 20px;
+    margin-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.menu-footer p {
+    color: #666;
+    font-size: 0.9em;
+}
+
+.menu-footer a {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+/* Animations */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.game-card {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.game-card:nth-child(1) { animation-delay: 0.1s; }
+.game-card:nth-child(2) { animation-delay: 0.2s; }
+.game-card:nth-child(3) { animation-delay: 0.3s; }
+.game-card:nth-child(4) { animation-delay: 0.4s; }
+.game-card:nth-child(5) { animation-delay: 0.5s; }
+.game-card:nth-child(6) { animation-delay: 0.6s; }
+.game-card:nth-child(7) { animation-delay: 0.7s; }
+.game-card:nth-child(8) { animation-delay: 0.8s; }
+.game-card:nth-child(9) { animation-delay: 0.9s; }
+.game-card:nth-child(10) { animation-delay: 1.0s; }
+.game-card:nth-child(11) { animation-delay: 1.1s; }
+.game-card:nth-child(12) { animation-delay: 1.2s; }
+.game-card:nth-child(13) { animation-delay: 1.3s; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .menu-header h1 {
+        font-size: 2em;
+    }
+
+    .header-actions {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .shop-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .balance-display {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .games-grid {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .game-card {
+        padding: 25px 20px;
+    }
+
+    .game-card .icon {
+        font-size: 3em;
+    }
+
+    .game-card h2 {
+        font-size: 1.3em;
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-container {
+        padding: 15px;
+    }
+
+    .menu-header {
+        padding: 30px 15px;
+    }
+
+    .menu-header h1 {
+        font-size: 1.8em;
+    }
+
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}

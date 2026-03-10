@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📈 Aktien Simulator - Das ultimative Börsenspiele</title>
+    <link rel="stylesheet" href="stocks.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@500;700;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Ad Banners -->
+    <div class="ad-banner banner-left">
+        <div class="ad-text">Ihre Werbung hier</div>
+    </div>
+    <div class="ad-banner banner-right">
+        <div class="ad-text">Ihre Werbung hier</div>
+    </div>
+
+    <div id="game-message" class="game-message"></div>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">
+                <span class="title-glow">📈 AKTIEN</span>
+                <span class="title-main">SIMULATOR</span>
+                <span class="title-accent">📈</span>
+            </h1>
+            <div class="stats-bar">
+                <div class="stat-box balance-box">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">BALANCE</span>
+                        <span id="balance" class="stat-value balance-value">1000</span>
+                    </div>
+                </div>
+                <div class="stat-box portfolio-box">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <span class="stat-label">PORTFOLIO</span>
+                        <span id="portfolio-value" class="stat-value portfolio-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-box profit-box">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-info">
+                        <span class="stat-label">PROFIT</span>
+                        <span id="total-profit" class="stat-value profit-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-box unrealized-box">
+                    <div class="stat-icon">💎</div>
+                    <div class="stat-info">
+                        <span class="stat-label">OFFEN P&amp;L</span>
+                        <span id="unrealized-profit" class="stat-value unrealized-value">$0.00</span>
+                    </div>
+                </div>
+                <div class="stat-box market-box">
+                    <div class="stat-icon">🌐</div>
+                    <div class="stat-info">
+                        <span class="stat-label">MARKT</span>
+                        <span id="market-indicator" class="stat-value market-value">BULL MARKET</span>
+                        <span class="stat-label" style="margin-top:4px">
+                            Update in <span id="countdown">30</span>s
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="global-countdown">
+                <div class="countdown-progress">
+                    <div id="countdown-bar" class="countdown-bar"></div>
+                </div>
+                <button id="skip-btn" class="skip-btn">⏭ Überspringen</button>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <!-- Stock List -->
+            <div class="stocks-section">
+                <h2 class="section-title">🎯 VERFÜGBARE AKTIEN</h2>
+                <div class="stocks-tabs">
+                    <button class="tab-btn active" data-tab="stocks">📈 AKTIEN</button>
+                    <button class="tab-btn" data-tab="etfs">🏦 ETFs</button>
+                </div>
+                <div id="tab-stocks" class="tab-content active">
+                    <div class="stocks-grid" id="stocks-grid-stocks"></div>
+                </div>
+                <div id="tab-etfs" class="tab-content">
+                    <div class="stocks-grid" id="stocks-grid-etfs"></div>
+                </div>
+            </div>
+
+            <!-- Bottom Grid: Portfolio & History -->
+            <div class="bottom-grid">
+                <!-- Portfolio -->
+                <div class="portfolio-section">
+                    <h2 class="section-title">💼 DEIN PORTFOLIO</h2>
+                    <div id="portfolio-container" class="portfolio-container">
+                        <div class="empty-portfolio">Noch keine Aktien im Portfolio</div>
+                    </div>
+                </div>
+
+                <!-- Short Portfolio -->
+                <div class="short-portfolio-section">
+                    <h2 class="section-title">📉 SHORT POSITIONEN</h2>
+                    <div id="short-portfolio-container" class="short-portfolio-container">
+                        <div class="empty-portfolio">Keine offenen Short-Positionen</div>
+                    </div>
+                </div>
+
+                <!-- Transaction History -->
+                <div class="history-section">
+                    <div class="history-header">
+                        <h3>📜 TRANSAKTIONSHISTORIE</h3>
+                        <div class="history-actions">
+                            <button class="stats-btn" onclick="showStatsModal()">📊 STATISTIK</button>
+                            <button class="reset-btn" onclick="resetGame()">🔄 RESET</button>
+                        </div>
+                    </div>
+                    <div id="history-container" class="history-container">
+                        <div id="history-list" class="history-list"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Side Panel -->
+        <aside class="side-panel">
+            <div class="panel-section rules-panel">
+                <h3>📈 SPIELREGELN</h3>
+                <ul class="rules-list">
+                    <li><strong>Kaufen:</strong> Erwirb Aktien zum aktuellen Preis</li>
+                    <li><strong>Verkaufen:</strong> Verkaufe deine Aktien zum Marktpreis</li>
+                    <li><strong>Preise:</strong> Ändern sich alle 30 Sekunden automatisch</li>
+                    <li><strong>Portfolio:</strong> Verfolge den Wert deiner Investitionen</li>
+                    <li><strong>Profit:</strong> Gewinne oder Verluste werden berechnet</li>
+                </ul>
+            </div>
+
+            <div class="panel-section features-panel">
+                <h3>✨ FEATURES</h3>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        <span class="feature-text">Echtzeit-Preise</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">💼</span>
+                        <span class="feature-text">Portfolio-Management</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📈</span>
+                        <span class="feature-text">Profit Tracking</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        <span class="feature-text">Mobile Ready</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal-overlay" class="modal-overlay">
+        <div id="stats-modal" class="stats-modal">
+            <div class="stats-modal-header">
+                <h2>📊 STATISTIK</h2>
+                <button id="close-stats-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="stats-modal-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">💼</div>
+                        <div class="stat-label">Transaktionen</div>
+                        <div id="stats-transactions" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">Gewinn Trades</div>
+                        <div id="stats-winning-trades" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card lose">
+                        <div class="stat-icon">📉</div>
+                        <div class="stat-label">Verlust Trades</div>
+                        <div id="stats-losing-trades" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-label">Gesamt Investiert</div>
+                        <div id="stats-total-invested" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💎</div>
+                        <div class="stat-label">Höchster Profit</div>
+                        <div id="stats-highest-profit" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💵</div>
+                        <div class="stat-label">Gesamt Profit</div>
+                        <div id="stats-total-profit" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card balance">
+                        <div class="stat-icon">🏦</div>
+                        <div class="stat-label">Aktueller Kontostand</div>
+                        <div id="stats-balance" class="stat-value">1000</div>
+                    </div>
+                    <div class="stat-card portfolio">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-label">Portfolio Wert</div>
+                        <div id="stats-portfolio-value" class="stat-value">0</div>
+                    </div>
+                </div>
+                <div class="stats-actions">
+                    <button id="reset-stats-btn" class="btn btn-danger">📊 Statistik Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Modal -->
+    <div id="buy-modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="buy-modal" class="buy-modal">
+            <div class="buy-modal-header">
+                <h2>🛒 KAUFEN</h2>
+                <button id="close-buy-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="buy-modal-body">
+                <div class="buy-asset-info">
+                    <div id="buy-asset-name" class="buy-asset-name">AAPL - Apple Inc. (Aktie)</div>
+                    <div class="buy-asset-price">Preis: <span id="buy-asset-price">$150.00</span></div>
+                </div>
+                <div class="buy-quantity-section">
+                    <label for="buy-quantity">Anzahl:</label>
+                    <input type="number" id="buy-quantity" class="buy-quantity-input" value="1" min="1"
+                        oninput="updateTotalCost()">
+                    <div class="buy-max-info">Max. verfügbar: <span id="buy-max-shares">10</span></div>
+                    <button id="buy-max-btn" class="btn btn-max">MAX</button>
+                </div>
+                <div class="buy-total-section">
+                    <div class="buy-total-label">Gesamtkosten:</div>
+                    <div id="buy-total-cost" class="buy-total-cost">$150.00</div>
+                </div>
+                <div class="buy-modal-actions">
+                    <button id="cancel-buy-btn" class="btn btn-secondary">Abbrechen</button>
+                    <button id="confirm-buy-btn" class="btn btn-primary">Kaufen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sell Modal -->
+    <div id="sell-modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="sell-modal" class="sell-modal">
+            <div class="sell-modal-header">
+                <h2>📤 VERKAUFEN</h2>
+                <button id="close-sell-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="sell-modal-body">
+                <div class="sell-asset-info">
+                    <div id="sell-asset-name" class="sell-asset-name">AAPL - Apple Inc. (Aktie)</div>
+                    <div class="sell-asset-price">Preis: <span id="sell-asset-price">$150.00</span></div>
+                </div>
+                <div class="sell-quantity-section">
+                    <label for="sell-quantity">Anzahl:</label>
+                    <input type="number" id="sell-quantity" class="sell-quantity-input" value="1" min="1"
+                        oninput="updateTotalRevenue()">
+                    <div class="sell-max-info">Verfügbar: <span id="sell-max-shares">10</span></div>
+                    <button id="sell-max-btn" class="btn btn-max">MAX</button>
+                </div>
+                <div class="sell-total-section">
+                    <div class="sell-total-label">Gesamterlös:</div>
+                    <div id="sell-total-revenue" class="sell-total-revenue">$150.00</div>
+                </div>
+                <div class="sell-modal-actions">
+                    <button id="cancel-sell-btn" class="btn btn-secondary">Abbrechen</button>
+                    <button id="confirm-sell-btn" class="btn btn-sell">Verkaufen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Short Modal -->
+    <div id="short-modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="short-modal" class="short-modal">
+            <div class="short-modal-header">
+                <h2>⬇ SHORT SELLING</h2>
+                <button id="close-short-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="short-modal-body">
+                <div class="short-warning">
+                    ⚠ SHORT SELLING: Du leihst Aktien und verkaufst sie. Profit wenn der Kurs fällt!
+                </div>
+                <div class="short-asset-info">
+                    <div id="short-asset-name" class="short-asset-name">AAPL - Apple Inc.</div>
+                    <div class="short-asset-price">Aktueller Kurs: <span id="short-asset-price">150.00</span></div>
+                </div>
+                <div class="short-leverage-section">
+                    <label for="short-leverage">Hebel (Leverage)</label>
+                    <div class="leverage-input-group">
+                        <input type="range" id="short-leverage-slider" class="leverage-slider" min="1" max="50"
+                            value="1" step="1">
+                        <div class="leverage-value-container">
+                            <input type="number" id="short-leverage" class="short-leverage-input" value="1" min="1"
+                                max="50" step="1">
+                            <span class="leverage-suffix">x</span>
+                        </div>
+                    </div>
+                    <div class="leverage-risk-indicator" id="leverage-risk-indicator">Risiko: Niedrig</div>
+                </div>
+                <div class="short-quantity-section">
+                    <label for="short-quantity">Anzahl Aktien</label>
+                    <input type="number" id="short-quantity" class="short-quantity-input" value="1" min="1">
+                    <div class="short-max-info">Max. shortbar: <span id="short-max-shares">10</span></div>
+                    <button id="short-max-btn" class="btn btn-max">MAX</button>
+                </div>
+                <div class="short-total-section">
+                    <div class="short-total-label">Position (Gesamtwert):</div>
+                    <div id="short-total-revenue" class="short-total-revenue">150.00</div>
+                </div>
+                <div class="short-margin-section">
+                    <div class="short-margin-label">Benötigte Margin:</div>
+                    <div id="short-margin-required" class="short-margin-value">150.00</div>
+                </div>
+                <div class="short-liquidation-section">
+                    <div class="short-liquidation-label">Liquidation bei:</div>
+                    <div id="short-liquidation-price" class="short-liquidation-value">$165.00</div>
+                </div>
+                <div class="short-modal-actions">
+                    <button id="cancel-short-btn" class="btn btn-secondary">Abbrechen</button>
+                    <button id="confirm-short-btn" class="btn btn-short">SHORT ERÖFFNEN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cover Modal -->
+    <div id="cover-modal-overlay" class="modal-overlay" style="display: none;">
+        <div id="cover-modal" class="cover-modal">
+            <div class="cover-modal-header">
+                <h2>🔄 COVER SHORT</h2>
+                <button id="close-cover-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="cover-modal-body">
+                <div class="cover-asset-info">
+                    <div id="cover-asset-name" class="cover-asset-name">AAPL - Apple Inc.</div>
+                    <div class="cover-position-info">
+                        <div class="cover-shares">Position: <span id="cover-position-shares">10</span> Aktien</div>
+                        <div class="cover-entry-price">Entry: <span id="cover-entry-price">150.00</span></div>
+                        <div class="cover-current-price">Aktuell: <span id="cover-current-price">155.00</span></div>
+                    </div>
+                </div>
+                <div class="cover-quantity-section">
+                    <label for="cover-quantity">Anzahl zum Covern</label>
+                    <input type="number" id="cover-quantity" class="short-quantity-input" value="1" min="1">
+                    <div class="short-max-info">Max. coverbar: <span id="cover-max-shares">10</span></div>
+                    <button id="cover-max-btn" class="btn btn-max">MAX</button>
+                </div>
+                <div class="cover-pnl-section">
+                    <div class="cover-pnl-label">Unrealized P&L:</div>
+                    <div id="cover-pnl-value" class="cover-pnl-value cover-pnl-positive">+50.00</div>
+                </div>
+                <div class="cover-cost-section">
+                    <div class="cover-cost-label">Kosten (zurückkaufen):</div>
+                    <div id="cover-cost-value" class="cover-cost-value">155.00</div>
+                </div>
+                <div class="cover-modal-actions">
+                    <button id="cancel-cover-btn" class="btn btn-secondary">Abbrechen</button>
+                    <button id="confirm-cover-btn" class="btn btn-cover">COVER</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="news-toast-container"></div>
+
+    <script src="balance.js"></script>
+    <script src="stocks.js"></script>
+    <script>
+        // Balance sync after DOM is ready
+        setTimeout(function () {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            if (typeof getBalanceSync === 'function') {
+                var balanceEl = document.getElementById('balance');
+                var statsBalanceEl = document.getElementById('stats-balance');
+                var balance = getBalanceSync();
+                if (balanceEl) balanceEl.textContent = Math.round(balance);
+                if (statsBalanceEl) statsBalanceEl.textContent = Math.round(balance);
+            }
+        }, 50);
+    </script>
+</body>
+
+</html>

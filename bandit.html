@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 SUPER BANDIT 🎰 - Das ultimative Casinospiel</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="bandit.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">
+                <span class="title-glow">🎰 SUPER</span>
+                <span class="title-main">BANDIT</span>
+                <span class="title-accent">🎰</span>
+            </h1>
+            <div class="stats-bar">
+                <div class="stat-box balance-box">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">BALANCE</span>
+                        <span id="balance" class="stat-value balance-value">1000</span>
+                    </div>
+                </div>
+                <div class="stat-box bet-box">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <span class="stat-label">EINSATZ</span>
+                        <span id="current-bet" class="stat-value bet-value">100</span>
+                    </div>
+                </div>
+                <div class="stat-box win-box">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <span class="stat-label">GEWINNE</span>
+                        <span id="total-wins" class="stat-value win-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <!-- Jackpot Display -->
+            <div class="jackpot-section">
+                <div class="jackpot-display">
+                    <div class="jackpot-label">🚀 PROGRESSIVER JACKPOT</div>
+                    <div class="jackpot-amount" id="jackpot">0</div>
+                    <div class="jackpot-progress">
+                        <div class="progress-bar" id="jackpot-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slot Machine -->
+            <div class="slot-machine-container">
+                <div class="machine-body">
+                    <div class="machine-top">
+                        <div class="light-strip left"></div>
+                        <div class="brand-logo">SUPER BANDIT</div>
+                        <div class="light-strip right"></div>
+                    </div>
+                    
+                    <div class="screen-frame">
+                        <div class="screen-glow"></div>
+                        <div class="reels-container">
+                            <div class="reel-window" id="reel1">
+                                <div class="reel-strip">
+                                    <div class="reel-symbols" id="reel1-symbols"></div>
+                                </div>
+                                <div class="reel-overlay top"></div>
+                                <div class="reel-overlay bottom"></div>
+                                <div class="payline-marker"></div>
+                            </div>
+                            <div class="reel-window" id="reel2">
+                                <div class="reel-strip">
+                                    <div class="reel-symbols" id="reel2-symbols"></div>
+                                </div>
+                                <div class="reel-overlay top"></div>
+                                <div class="reel-overlay bottom"></div>
+                                <div class="payline-marker"></div>
+                            </div>
+                            <div class="reel-window" id="reel3">
+                                <div class="reel-strip">
+                                    <div class="reel-symbols" id="reel3-symbols"></div>
+                                </div>
+                                <div class="reel-overlay top"></div>
+                                <div class="reel-overlay bottom"></div>
+                                <div class="payline-marker"></div>
+                            </div>
+                            <div class="reel-window" id="reel4">
+                                <div class="reel-strip">
+                                    <div class="reel-symbols" id="reel4-symbols"></div>
+                                </div>
+                                <div class="reel-overlay top"></div>
+                                <div class="reel-overlay bottom"></div>
+                                <div class="payline-marker"></div>
+                            </div>
+                            <div class="reel-window" id="reel5">
+                                <div class="reel-strip">
+                                    <div class="reel-symbols" id="reel5-symbols"></div>
+                                </div>
+                                <div class="reel-overlay top"></div>
+                                <div class="reel-overlay bottom"></div>
+                                <div class="payline-marker"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="machine-bottom">
+                        <div class="deco-lights">
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                            <div class="light"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Win Display -->
+            <div id="win-display" class="win-display hidden">
+                <div class="win-text">GEWINNER!</div>
+                <div class="win-amount" id="win-amount">+0</div>
+                <div class="win-multiplier" id="win-multiplier"></div>
+            </div>
+
+            <!-- Message Display -->
+            <div id="game-message" class="game-message"></div>
+
+            <!-- Bet Controls -->
+            <div class="bet-controls-section">
+                <div class="bet-header">
+                    <span class="bet-title">💎 EINSATZ AUSWÄHLEN</span>
+                </div>
+                <div class="bet-controls">
+                    <div class="bet-presets">
+                        <button class="bet-preset-btn" data-bet="10">10</button>
+                        <button class="bet-preset-btn" data-bet="25">25</button>
+                        <button class="bet-preset-btn" data-bet="50">50</button>
+                        <button class="bet-preset-btn active" data-bet="100">100</button>
+                        <button class="bet-preset-btn" data-bet="250">250</button>
+                        <button class="bet-preset-btn" data-bet="500">500</button>
+                    </div>
+                    <div class="bet-adjust">
+                        <button class="bet-adjust-btn minus" onclick="adjustBet(-50)">−50</button>
+                        <input type="number" id="bet-input" class="bet-input" min="1" value="100">
+                        <button class="bet-adjust-btn plus" onclick="adjustBet(50)">+50</button>
+                    </div>
+                    <div class="bet-actions">
+                        <button class="action-btn half" onclick="halfBet()">½</button>
+                        <button class="action-btn double" onclick="doubleBet()">×2</button>
+                        <button class="action-btn max" onclick="maxBet()">MAX</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spin Button -->
+            <div class="spin-section">
+                <button id="spin-btn" class="spin-btn" onclick="spin()">
+                    <span class="spin-icon">🎰</span>
+                    <span class="spin-text">DREHEN</span>
+                    <span class="spin-glow"></span>
+                </button>
+                
+                <!-- Autoroll Button -->
+                <button id="autoroll-btn" class="autoroll-btn" onclick="toggleAutoroll()">
+                    <span class="autoroll-icon">⚡</span>
+                    <span class="autoroll-text">AUTOROLL</span>
+                    <span class="autoroll-indicator"></span>
+                </button>
+            </div>
+
+            <!-- Symbol Legend -->
+            <div class="symbol-legend-section">
+                <h3 class="legend-title">🏆 GEWINNSYMBOLE</h3>
+                <div class="symbol-grid">
+                    <div class="symbol-card jackpot-card" data-symbol="7️⃣">
+                        <div class="symbol-emoji">7️⃣</div>
+                        <div class="symbol-name">JACKPOT</div>
+                        <div class="symbol-multiplier">500x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="💎">
+                        <div class="symbol-emoji">💎</div>
+                        <div class="symbol-name">DIAMANT</div>
+                        <div class="symbol-multiplier">200x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="🔔">
+                        <div class="symbol-emoji">🔔</div>
+                        <div class="symbol-name">GLOCKE</div>
+                        <div class="symbol-multiplier">100x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="⭐">
+                        <div class="symbol-emoji">⭐</div>
+                        <div class="symbol-name">STERN</div>
+                        <div class="symbol-multiplier">50x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="🍇">
+                        <div class="symbol-emoji">🍇</div>
+                        <div class="symbol-name">WEINTRAUBEN</div>
+                        <div class="symbol-multiplier">25x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="🍊">
+                        <div class="symbol-emoji">🍊</div>
+                        <div class="symbol-name">ORANGE</div>
+                        <div class="symbol-multiplier">15x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="🍋">
+                        <div class="symbol-emoji">🍋</div>
+                        <div class="symbol-name">ZITRONE</div>
+                        <div class="symbol-multiplier">10x</div>
+                    </div>
+                    <div class="symbol-card" data-symbol="🍒">
+                        <div class="symbol-emoji">🍒</div>
+                        <div class="symbol-name">KIRSCHE</div>
+                        <div class="symbol-multiplier">5x</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game History -->
+            <div class="history-section">
+                <div class="history-header">
+                    <h3>📜 SPIELHISTORIE</h3>
+                    <div class="history-actions">
+                        <button class="stats-btn" onclick="showStatsModal()">📊 STATISTIK</button>
+                        <button class="reset-btn" onclick="resetGame()">🔄 RESET</button>
+                    </div>
+                </div>
+                <div id="history-container" class="history-container">
+                    <div id="history-list" class="history-list"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Side Panel -->
+        <aside class="side-panel">
+            <div class="panel-section rules-panel">
+                <h3>🎰 SPIELREGELN</h3>
+                <ul class="rules-list">
+                    <li><strong>Ziel:</strong> 5 gleiche Symbole für maximalen Gewinn</li>
+                    <li><strong>Symbole:</strong> 8 verschiedene mit unterschiedlichen Werten</li>
+                    <li><strong>Jackpot:</strong> 5x 7️⃣ = 500-facher Einsatz!</li>
+                    <li><strong>Auszahlung:</strong> Einsatz × Multiplikator</li>
+                    <li><strong>Bonus:</strong> Scatter-Symbole für Extra-Gewinne</li>
+                </ul>
+            </div>
+            
+            <div class="panel-section payouts-panel">
+                <h3>💎 AUSZAHLUNGSTABELLE</h3>
+                <table class="payouts-table">
+                    <tr><td>💎💎💎💎💎</td><td>200x</td></tr>
+                    <tr><td>🔔🔔🔔🔔🔔</td><td>100x</td></tr>
+                    <tr><td>⭐⭐⭐⭐⭐</td><td>50x</td></tr>
+                    <tr><td>🍇🍇🍇🍇🍇</td><td>25x</td></tr>
+                    <tr><td>🍊🍊🍊🍊🍊</td><td>15x</td></tr>
+                    <tr><td>🍋🍋🍋🍋🍋</td><td>10x</td></tr>
+                    <tr><td>🍒🍒🍒🍒🍒</td><td>5x</td></tr>
+                </table>
+            </div>
+
+            <div class="panel-section features-panel">
+                <h3>✨ FEATURES</h3>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">🎨</span>
+                        <span class="feature-text">HD Grafik</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔊</span>
+                        <span class="feature-text">Soundeffekte</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        <span class="feature-text">Mobile Ready</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🎁</span>
+                        <span class="feature-text">Bonusrunde</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal-overlay" class="modal-overlay">
+        <div id="stats-modal" class="stats-modal">
+            <div class="stats-modal-header">
+                <h2>📊 STATISTIK</h2>
+                <button id="close-stats-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="stats-modal-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-label">Spiele Gespielt</div>
+                        <div id="stats-total-games" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">🏆</div>
+                        <div class="stat-label">Gewonnene Spiele</div>
+                        <div id="stats-wins" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card lose">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-label">Verlorene Spiele</div>
+                        <div id="stats-losses" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card jackpot">
+                        <div class="stat-icon">🎰</div>
+                        <div class="stat-label">Jackpot Gewinne</div>
+                        <div id="stats-jackpots" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💎</div>
+                        <div class="stat-label">Höchster Gewinn</div>
+                        <div id="stats-highest-win" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-label">Gesamt Gewonnen</div>
+                        <div id="stats-total-winnings" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card lose">
+                        <div class="stat-icon">💸</div>
+                        <div class="stat-label">Gesamt Verloren</div>
+                        <div id="stats-total-losses" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card balance">
+                        <div class="stat-icon">💵</div>
+                        <div class="stat-label">Aktueller Kontostand</div>
+                        <div id="stats-balance" class="stat-value">1000</div>
+                    </div>
+                    <div class="stat-card profit" id="profit-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">Profit</div>
+                        <div id="stats-profit" class="stat-value">0</div>
+                    </div>
+                </div>
+                <div class="stats-actions">
+                    <button id="reset-stats-btn" class="btn btn-danger">📊 Statistik Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay" class="win-overlay">
+        <div class="win-overlay-content">
+            <div class="confetti-container" id="confetti"></div>
+            <div class="win-main">
+                <div class="win-title">🎉 GEWINNER! 🎉</div>
+                <div class="win-amount-large" id="win-amount-large">+0</div>
+                <div class="win-details" id="win-details"></div>
+                <button class="btn btn-primary" onclick="closeWinOverlay()">WEITER</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script src="bandit.js"></script>
+    <script>
+        // Balance sync after DOM is ready
+        setTimeout(function() {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            if (typeof getBalanceSync === 'function') {
+                var balanceEl = document.getElementById('balance');
+                var statsBalanceEl = document.getElementById('stats-balance');
+                var balance = getBalanceSync();
+                if (balanceEl) balanceEl.textContent = Math.round(balance);
+                if (statsBalanceEl) statsBalanceEl.textContent = Math.round(balance);
+            }
+        }, 50);
+    </script>
+</body>
+</html>

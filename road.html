@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Road - Das Aufregende Casinospiel</title>
+    <link rel="stylesheet" href="road.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header mit Spieltitel und Kontostand -->
+        <header class="game-header">
+            <h1>🛣️ ROAD 🛣️</h1>
+            <div class="score-panel">
+                <div class="score-item">
+                    <span class="score-label">Balance</span>
+                    <span id="balance" class="score-value">1000</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Einsatz</span>
+                    <span id="current-bet" class="score-value">100</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Multiplikator</span>
+                    <span id="current-multiplier" class="score-value multiplier">1.00x</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Gewinn</span>
+                    <span id="potential-win-amount" class="score-value win">100</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Haupt-Spielbereich -->
+        <main class="game-table">
+            <!-- Nachrichtenanzeige -->
+            <div id="game-message" class="game-message">
+                <span class="message-icon">🎮</span>
+                <span class="message-text">Wähle deinen Einsatz und starte!</span>
+            </div>
+
+            <!-- Einsatz-Steuerung -->
+            <div class="bet-controls">
+                <div class="bet-input-group">
+                    <button class="bet-btn quick-bet" onclick="changeBet(-100)">-100</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-50)">-50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-10)">-10</button>
+                    <div class="bet-input-wrapper">
+                        <span class="bet-currency">💰</span>
+                        <input type="number" id="bet-input" class="bet-input" min="10" max="500" value="100" onchange="setCustomBet(this.value)">
+                    </div>
+                    <button class="bet-btn quick-bet" onclick="changeBet(10)">+10</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(50)">+50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(100)">+100</button>
+                </div>
+                <div class="bet-actions">
+                    <button class="bet-btn action-btn" onclick="halfBet()">½</button>
+                    <button class="bet-btn action-btn" onclick="doubleBet()">×2</button>
+                    <button class="bet-btn action-btn all-in" onclick="setAllIn()">ALL IN</button>
+                </div>
+            </div>
+
+            <!-- Road Anzeige -->
+            <div class="road-section">
+                <div class="road-header">
+                    <span class="road-count-label">Ziel: </span>
+                    <select id="road-steps" class="road-select">
+                        <option value="5">5 Schritte</option>
+                        <option value="10" selected>10 Schritte</option>
+                        <option value="15">15 Schritte</option>
+                        <option value="20">20 Schritte</option>
+                    </select>
+                    <span class="road-subtitle">Überlebe den Weg!</span>
+                </div>
+                
+                <!-- Road Display -->
+                <div class="road-container">
+                    <!-- Road -->
+                    <div class="road-track">
+                        <!-- Dynamic road steps will be generated here -->
+                    </div>
+                    
+                    <!-- Progress indicator -->
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-labels">
+                            <span>Start</span>
+                            <span id="progress-step">0/10</span>
+                            <span>Ziel</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aktionsbuttons -->
+            <section class="action-buttons">
+                <button id="new-game-btn" class="btn btn-primary" onclick="startNewGame()">
+                    <span class="btn-icon">🚀</span>
+                    <span>Start</span>
+                </button>
+                <button id="cash-out-btn" class="btn btn-success" onclick="cashOut()" disabled>
+                    <span class="btn-icon">💎</span>
+                    <span>Cash Out</span>
+                </button>
+            </section>
+
+            <!-- Spielhistorie -->
+            <section class="game-history">
+                <h3>📜 Spielhistorie 
+                    <button class="stats-btn" onclick="showStatsModal()">
+                        <span>📊</span> Statistik
+                    </button>
+                </h3>
+                <ul id="history-list"></ul>
+            </section>
+        </main>
+
+        <!-- Spielregeln -->
+        <aside class="rules-panel">
+            <div class="rules-header">
+                <span class="rules-icon">🛣️</span>
+                <h3>Road Regeln</h3>
+            </div>
+            <ul class="rules-list">
+                <li>
+                    <span class="rule-number">1</span>
+                    <div class="rule-content">
+                        <strong>Ziel:</strong> Überlebe so viele Schritte wie möglich
+                    </div>
+                </li>
+                <li>
+                    <span class="rule-number">2</span>
+                    <div class="rule-content">
+                        <strong>Wähle:</strong> 5-20 Schritte als Ziel
+                    </div>
+                </li>
+                <li>
+                    <span class="rule-number">3</span>
+                    <div class="rule-content">
+                        <strong>Multiplikator:</strong> Steigt linear mit jedem Schritt
+                    </div>
+                </li>
+                <li>
+                    <span class="rule-number">4</span>
+                    <div class="rule-content">
+                        <strong>Cash Out:</strong> Jederzeit auscashen
+                    </div>
+                </li>
+                <li>
+                    <span class="rule-number">5</span>
+                    <div class="rule-content">
+                        <strong>Crash:</strong> Verlierst du den Einsatz
+                    </div>
+                </li>
+            </ul>
+            
+            <!-- Multiplier Info -->
+            <div class="multiplier-info">
+                <h4>✨ Multiplikator</h4>
+                <div class="multiplier-formula">
+                    <span class="formula-text">1.0 + (0.05 × Schritte)</span>
+                </div>
+                <div class="multiplier-examples">
+                    <div class="example">
+                        <span class="example-steps">5 Schritte</span>
+                        <span class="example-multiplier">1.25x</span>
+                    </div>
+                    <div class="example">
+                        <span class="example-steps">10 Schritte</span>
+                        <span class="example-multiplier">1.50x</span>
+                    </div>
+                    <div class="example">
+                        <span class="example-steps">15 Schritte</span>
+                        <span class="example-multiplier">1.75x</span>
+                    </div>
+                    <div class="example">
+                        <span class="example-steps">20 Schritte</span>
+                        <span class="example-multiplier">2.00x</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Statistik Modal -->
+        <div id="stats-modal-overlay" class="modal-overlay">
+            <div id="stats-modal" class="stats-modal">
+                <div class="stats-modal-header">
+                    <h2>📊 Ihre Statistik</h2>
+                    <button id="close-stats-modal" class="close-modal">&times;</button>
+                </div>
+                <div class="stats-modal-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-icon">🎮</span>
+                            <span class="stat-label">Spiele Gespielt</span>
+                            <span id="stats-total-games" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">🏆</span>
+                            <span class="stat-label">Gewonnene Spiele</span>
+                            <span id="stats-wins" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">❌</span>
+                            <span class="stat-label">Verlorene Spiele</span>
+                            <span id="stats-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">💎</span>
+                            <span class="stat-label">Höchster Gewinn</span>
+                            <span id="stats-highest-win" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">📈</span>
+                            <span class="stat-label">Gesamt Gewonnen</span>
+                            <span id="stats-total-winnings" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">📉</span>
+                            <span class="stat-label">Gesamt Verloren</span>
+                            <span id="stats-total-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">💰</span>
+                            <span class="stat-label">Aktuelle Balance</span>
+                            <span id="stats-balance" class="stat-value">1000</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-icon">⚖️</span>
+                            <span class="stat-label">Profit</span>
+                            <span id="stats-profit" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="stats-actions">
+                        <button id="reset-stats-btn" class="btn btn-danger">
+                            <span>🔄</span> Statistik Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script>
+        // Sync balance after a short delay to ensure DOM is ready
+        setTimeout(function() {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            // Also update immediately with cached balance
+            if (typeof getBalanceSync === 'function') {
+                var balanceEl = document.getElementById('balance');
+                var statsBalanceEl = document.getElementById('stats-balance');
+                var balance = getBalanceSync();
+                if (balanceEl) balanceEl.textContent = Math.round(balance);
+                if (statsBalanceEl) statsBalanceEl.textContent = Math.round(balance);
+            }
+        }, 50);
+    </script>
+    <script src="road.js"></script>
+</body>
+</html>

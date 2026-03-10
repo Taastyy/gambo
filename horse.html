@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐎 PFERDERENNEN - Das ultimative Rennspiel</title>
+    <link rel="stylesheet" href="horse.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">
+                <span class="title-glow">🐎</span>
+                <span class="title-main">PFERDERENNEN</span>
+                <span class="title-accent">🏇</span>
+            </h1>
+            <div class="stats-bar">
+                <div class="stat-box balance-box">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">BALANCE</span>
+                        <span id="balance" class="stat-value balance-value">1000</span>
+                    </div>
+                </div>
+                <div class="stat-box bet-box">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <span class="stat-label">EINSATZ</span>
+                        <span id="current-bet" class="stat-value bet-value">100</span>
+                    </div>
+                </div>
+                <div class="stat-box win-box">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <span class="stat-label">GEWINNE</span>
+                        <span id="total-wins" class="stat-value win-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <!-- Racing Track -->
+            <div class="race-track-container">
+                <div class="race-track" id="race-track">
+                    <!-- Track Lanes -->
+                    <div class="track-lane" id="lane-1" data-horse="1">
+                        <div class="lane-number">1</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-1">
+                            <span class="horse-emoji">🏇</span>
+                            <div class="horse-name">FLITZER</div>
+                        </div>
+                    </div>
+                    <div class="track-lane" id="lane-2" data-horse="2">
+                        <div class="lane-number">2</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-2">
+                            <span class="horse-emoji">🐎</span>
+                            <div class="horse-name">STURM</div>
+                        </div>
+                    </div>
+                    <div class="track-lane" id="lane-3" data-horse="3">
+                        <div class="lane-number">3</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-3">
+                            <span class="horse-emoji">🏇</span>
+                            <div class="horse-name">BLITZ</div>
+                        </div>
+                    </div>
+                    <div class="track-lane" id="lane-4" data-horse="4">
+                        <div class="lane-number">4</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-4">
+                            <span class="horse-emoji">🐎</span>
+                            <div class="horse-name">DONNER</div>
+                        </div>
+                    </div>
+                    <div class="track-lane" id="lane-5" data-horse="5">
+                        <div class="lane-number">5</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-5">
+                            <span class="horse-emoji">🏇</span>
+                            <div class="horse-name">FEUER</div>
+                        </div>
+                    </div>
+                    <div class="track-lane" id="lane-6" data-horse="6">
+                        <div class="lane-number">6</div>
+                        <div class="lane-rail"></div>
+                        <div class="horse" id="horse-6">
+                            <span class="horse-emoji">🐎</span>
+                            <div class="horse-name">GOLD</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Finish Line -->
+                    <div class="finish-line"></div>
+                    <div class="finish-label">ZIEL</div>
+                </div>
+            </div>
+
+            <!-- Race Info Display -->
+            <div id="race-info" class="race-info">
+                <div class="race-status" id="race-status">Wähle dein Pferd und setze!</div>
+                <div class="countdown" id="countdown"></div>
+            </div>
+
+            <!-- Message Display -->
+            <div id="game-message" class="game-message"></div>
+
+            <!-- Horse Selection -->
+            <div class="horse-selection-section">
+                <h3 class="selection-title">🐴 WÄHLE DEIN SIEGERPFERD</h3>
+                <div class="horse-buttons">
+                    <button class="horse-btn" data-horse="1" onclick="selectHorse(1)">
+                        <span class="horse-btn-emoji">🏇</span>
+                        <span class="horse-btn-name">FLITZER</span>
+                        <span class="horse-odds" id="odds-1">x3.0</span>
+                    </button>
+                    <button class="horse-btn" data-horse="2" onclick="selectHorse(2)">
+                        <span class="horse-btn-emoji">🐎</span>
+                        <span class="horse-btn-name">STURM</span>
+                        <span class="horse-odds" id="odds-2">x4.0</span>
+                    </button>
+                    <button class="horse-btn" data-horse="3" onclick="selectHorse(3)">
+                        <span class="horse-btn-emoji">🏇</span>
+                        <span class="horse-btn-name">BLITZ</span>
+                        <span class="horse-odds" id="odds-3">x5.0</span>
+                    </button>
+                    <button class="horse-btn" data-horse="4" onclick="selectHorse(4)">
+                        <span class="horse-btn-emoji">🐎</span>
+                        <span class="horse-btn-name">DONNER</span>
+                        <span class="horse-odds" id="odds-4">x6.0</span>
+                    </button>
+                    <button class="horse-btn" data-horse="5" onclick="selectHorse(5)">
+                        <span class="horse-btn-emoji">🏇</span>
+                        <span class="horse-btn-name">FEUER</span>
+                        <span class="horse-odds" id="odds-5">x8.0</span>
+                    </button>
+                    <button class="horse-btn" data-horse="6" onclick="selectHorse(6)">
+                        <span class="horse-btn-emoji">🐎</span>
+                        <span class="horse-btn-name">GOLD</span>
+                        <span class="horse-odds" id="odds-6">x12.0</span>
+                    </button>
+                </div>
+                <div class="selected-horse-display" id="selected-display">
+                    Ausgewähltes Pferd: <span id="selected-horse-name">-</span>
+                </div>
+            </div>
+
+            <!-- Bet Controls -->
+            <div class="bet-controls-section">
+                <div class="bet-header">
+                    <span class="bet-title">💎 EINSATZ AUSWÄHLEN</span>
+                </div>
+                <div class="bet-controls">
+                    <div class="bet-presets">
+                        <button class="bet-preset-btn" data-bet="10">10</button>
+                        <button class="bet-preset-btn" data-bet="25">25</button>
+                        <button class="bet-preset-btn" data-bet="50">50</button>
+                        <button class="bet-preset-btn active" data-bet="100">100</button>
+                        <button class="bet-preset-btn" data-bet="250">250</button>
+                        <button class="bet-preset-btn" data-bet="500">500</button>
+                    </div>
+                    <div class="bet-adjust">
+                        <button class="bet-adjust-btn minus" onclick="adjustBet(-50)">−50</button>
+                        <input type="number" id="bet-input" class="bet-input" min="1" value="100">
+                        <button class="bet-adjust-btn plus" onclick="adjustBet(50)">+50</button>
+                    </div>
+                    <div class="bet-actions">
+                        <button class="action-btn half" onclick="halfBet()">½</button>
+                        <button class="action-btn double" onclick="doubleBet()">×2</button>
+                        <button class="action-btn max" onclick="maxBet()">MAX</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Race Button -->
+            <div class="race-section">
+                <button id="race-btn" class="race-btn" onclick="startRace()">
+                    <span class="race-icon">🐎</span>
+                    <span class="race-text">RENNEN STARTEN</span>
+                    <span class="race-glow"></span>
+                </button>
+            </div>
+
+            <!-- Race History -->
+            <div class="history-section">
+                <div class="history-header">
+                    <h3>📜 RENNENHISTORIE</h3>
+                    <div class="history-actions">
+                        <button class="stats-btn" onclick="showStatsModal()">📊 STATISTIK</button>
+                        <button class="reset-btn" onclick="resetGame()">🔄 RESET</button>
+                    </div>
+                </div>
+                <div id="history-container" class="history-container">
+                    <div id="history-list" class="history-list"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Side Panel -->
+        <aside class="side-panel">
+            <div class="panel-section rules-panel">
+                <h3>🎰 SPIELREGELN</h3>
+                <ul class="rules-list">
+                    <li><strong>Ziel:</strong> Setze auf das siegreiche Pferd</li>
+                    <li><strong>Auswahl:</strong> 6 Pferde mit unterschiedlichen Quoten</li>
+                    <li><strong>Gewinn:</strong> Einsatz × Quote bei Sieg</li>
+                    <li><strong>Mindesteinsatz:</strong> 10 Chips</li>
+                    <li><strong>Spannung:</strong> Animation des gesamten Rennens!</li>
+                </ul>
+            </div>
+            
+            <div class="panel-section payouts-panel">
+                <h3>📊 QUOTEN</h3>
+                <table class="payouts-table">
+                    <tr><td>🏇 FLITZER</td><td>x3.0</td></tr>
+                    <tr><td>🐎 STURM</td><td>x4.0</td></tr>
+                    <tr><td>🏇 BLITZ</td><td>x5.0</td></tr>
+                    <tr><td>🐎 DONNER</td><td>x6.0</td></tr>
+                    <tr><td>🏇 FEUER</td><td>x8.0</td></tr>
+                    <tr><td>🐎 GOLD</td><td>x12.0</td></tr>
+                </table>
+            </div>
+
+            <div class="panel-section features-panel">
+                <h3>✨ FEATURES</h3>
+                <div class="features-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">🎨</span>
+                        <span class="feature-text">HD Grafik</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🏇</span>
+                        <span class="feature-text">6 Pferde</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        <span class="feature-text">Mobile Ready</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🏆</span>
+                        <span class="feature-text">Große Gewinne</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal-overlay" class="modal-overlay">
+        <div id="stats-modal" class="stats-modal">
+            <div class="stats-modal-header">
+                <h2>📊 STATISTIK</h2>
+                <button id="close-stats-modal" class="close-modal">&times;</button>
+            </div>
+            <div class="stats-modal-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-label">Rennen Gestartet</div>
+                        <div id="stats-total-races" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">🏆</div>
+                        <div class="stat-label">Gewonnene Rennen</div>
+                        <div id="stats-wins" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card lose">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-label">Verlorene Rennen</div>
+                        <div id="stats-losses" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💎</div>
+                        <div class="stat-label">Höchster Gewinn</div>
+                        <div id="stats-highest-win" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card win">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-label">Gesamt Gewonnen</div>
+                        <div id="stats-total-winnings" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card lose">
+                        <div class="stat-icon">💸</div>
+                        <div class="stat-label">Gesamt Verloren</div>
+                        <div id="stats-total-losses" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card balance">
+                        <div class="stat-icon">💵</div>
+                        <div class="stat-label">Aktueller Kontostand</div>
+                        <div id="stats-balance" class="stat-value">1000</div>
+                    </div>
+                    <div class="stat-card profit" id="profit-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">Profit</div>
+                        <div id="stats-profit" class="stat-value">0</div>
+                    </div>
+                </div>
+                <div class="stats-actions">
+                    <button id="reset-stats-btn" class="btn btn-danger">📊 Statistik Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay" class="win-overlay">
+        <div class="win-overlay-content">
+            <div class="confetti-container" id="confetti"></div>
+            <div class="win-main">
+                <div class="win-title" id="win-title">🎉 GEWINNER! 🎉</div>
+                <div class="win-horse" id="win-horse"></div>
+                <div class="win-amount-large" id="win-amount-large">+0</div>
+                <button class="btn btn-primary" onclick="closeWinOverlay()">WEITER</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script src="horse.js"></script>
+    <script>
+        // Balance sync after DOM is ready
+        setTimeout(function() {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            if (typeof getBalanceSync === 'function') {
+                var balanceEl = document.getElementById('balance');
+                var statsBalanceEl = document.getElementById('stats-balance');
+                var balance = getBalanceSync();
+                if (balanceEl) balanceEl.textContent = Math.round(balance);
+                if (statsBalanceEl) statsBalanceEl.textContent = Math.round(balance);
+            }
+        }, 50);
+    </script>
+</body>
+</html>

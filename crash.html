@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crash - Das Aufregende Casinospiel</title>
+    <link rel="stylesheet" href="crash.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header mit Spieltitel und Kontostand -->
+        <header class="game-header">
+            <h1>📈 Crash 📈</h1>
+            <div class="score-panel">
+                <div class="score-item">
+                    <span class="score-label">Balance</span>
+                    <span id="balance" class="score-value">1000</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Einsatz</span>
+                    <span id="current-bet" class="score-value">100</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Gewinne</span>
+                    <span id="total-wins" class="score-value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Spiele</span>
+                    <span id="total-games" class="score-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Haupt-Spielbereich -->
+        <main class="game-table">
+            <!-- Nachrichtenanzeige -->
+            <div id="game-message" class="game-message"></div>
+
+            <!-- Einsatz-Steuerung -->
+            <div class="bet-controls">
+                <div class="quick-bets">
+                    <button class="bet-btn quick-bet" onclick="changeBet(-100)">-100</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-50)">-50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-10)">-10</button>
+                    <input type="number" id="bet-input" class="bet-input" min="1" value="100" onchange="setCustomBet(this.value)">
+                    <button class="bet-btn quick-bet" onclick="changeBet(10)">+10</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(50)">+50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(100)">+100</button>
+                </div>
+                <div class="bet-actions">
+                    <button class="bet-btn action-btn" onclick="halfBet()">½</button>
+                    <button class="bet-btn action-btn" onclick="doubleBet()">×2</button>
+                    <button class="bet-btn action-btn all-in" onclick="setAllIn()">ALL IN</button>
+                </div>
+            </div>
+
+            <!-- Auto Cashout Steuerung -->
+            <div class="auto-cashout-controls">
+                <div class="auto-cashout-label">🎯 Auto Cashout bei:</div>
+                <div class="auto-cashout-input-group">
+                    <input type="number" id="auto-cashout-input" class="auto-cashout-input" min="1.01" max="50.00" step="0.01" value="2.00" onchange="setAutoCashout(this.value)">
+                    <span class="auto-cashout-suffix">x</span>
+                </div>
+                <div class="quick-auto-cashouts">
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(1.10)">1.10x</button>
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(1.50)">1.50x</button>
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(2.00)">2.00x</button>
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(3.00)">3.00x</button>
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(5.00)">5.00x</button>
+                    <button class="auto-cashout-btn" onclick="setAutoCashout(10.00)">10.00x</button>
+                </div>
+            </div>
+
+            <!-- Crash Multiplier Anzeige -->
+            <div class="crash-display-section">
+                <div class="multiplier-container">
+                    <span class="multiplier-label">Multiplikator</span>
+                    <span id="multiplier" class="multiplier-value">1.00x</span>
+                    <div class="current-bet-display">
+                        <span class="current-bet-label">Einsatz:</span>
+                        <span id="current-bet-display" class="current-bet-value">100</span>
+                    </div>
+                    <div class="potential-win-display">
+                        <span class="potential-win-label">Möglicher Gewinn:</span>
+                        <span id="potential-win" class="potential-win-value">100</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aktionsbuttons -->
+            <section class="action-buttons">
+                <button id="start-btn" class="btn btn-primary" onclick="startGame()">🚀 Start</button>
+                <button id="cashout-btn" class="btn btn-success" onclick="cashOut()" disabled>💰 Cash Out</button>
+            </section>
+
+            <!-- Spielhistorie -->
+            <section class="game-history">
+                <h3>Spielhistorie <button class="stats-btn" onclick="showStatsModal()">📊 Statistik</button></h3>
+                <ul id="history-list"></ul>
+            </section>
+        </main>
+
+        <!-- Spielregeln -->
+        <aside class="rules-panel">
+            <h3>📈 Crash Regeln 📈</h3>
+            <ul>
+                <li><strong>Ziel:</strong> Versuche auszuzahlen, bevor die Kurve crasht</li>
+                <li><strong>Multiplier:</strong> Steigt kontinuierlich an</li>
+                <li><strong>Cash Out:</strong> Jederzeit auscashen für Gewinn</li>
+                <li><strong>Auszahlung:</strong> Einsatz × Multiplier</li>
+                <li><strong>Crash:</strong> Wenn die Kurve crasht, verlierst du</li>
+                <li><strong>Strategie:</strong> Frühes Cashen ist sicherer</li>
+            </ul>
+            
+            <!-- Auszahlungstabelle -->
+            <div class="payout-table">
+                <h4>Beispiel-Auszahlungen</h4>
+                <table>
+                    <tr><td>1.10x</td><td>1.10:1</td></tr>
+                    <tr><td>1.50x</td><td>1.50:1</td></tr>
+                    <tr><td>2.00x</td><td>2.00:1</td></tr>
+                    <tr><td>5.00x</td><td>5.00:1</td></tr>
+                    <tr><td>10.00x</td><td>10.00:1</td></tr>
+                    <tr><td>50.00x</td><td>50.00:1</td></tr>
+                </table>
+            </div>
+        </aside>
+
+        <!-- Statistik Modal -->
+        <div id="stats-modal-overlay" class="modal-overlay">
+            <div id="stats-modal" class="stats-modal">
+                <div class="stats-modal-header">
+                    <h2>📊 Ihre Statistik</h2>
+                    <button id="close-stats-modal" class="close-modal">&times;</button>
+                </div>
+                <div class="stats-modal-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Spiele Gespielt</span>
+                            <span id="stats-total-games" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gewonnene Spiele</span>
+                            <span id="stats-wins" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Verlorene Spiele</span>
+                            <span id="stats-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Höchster Multiplier</span>
+                            <span id="stats-highest-multiplier" class="stat-value">0x</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Höchster Gewinn</span>
+                            <span id="stats-highest-win" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gesamt Gewonnen</span>
+                            <span id="stats-total-winnings" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gesamt Verloren</span>
+                            <span id="stats-total-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Aktuelle Balance</span>
+                            <span id="stats-balance" class="stat-value">1000</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Profit</span>
+                            <span id="stats-profit" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="stats-actions">
+                        <button id="reset-stats-btn" class="btn btn-danger">Statistik Zurücksetzen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script>
+        // Spielzustand
+        let gameState = 'idle'; // idle, running, crashed, cashedOut
+        let currentMultiplier = 1.00;
+        let crashPoint = 0;
+        let currentBet = 100;
+        let autoCashoutTarget = 2.00; // Auto Cashout Ziel
+        let animationId = null;
+        let lastTimestamp = 0;
+        
+        // Statistiken
+        let stats = {
+            totalGames: 0,
+            wins: 0,
+            losses: 0,
+            highestMultiplier: 0,
+            highestWin: 0,
+            totalWinnings: 0,
+            totalLosses: 0
+        };
+
+        // Formatierung
+        function formatNumber(num) {
+            return Math.floor(num).toLocaleString('de-DE');
+        }
+
+        function formatMultiplier(num) {
+            return num.toFixed(2) + 'x';
+        }
+
+        // Balance Management
+        function getBalance() {
+            return typeof getBalanceSync === 'function' ? getBalanceSync() : 1000;
+        }
+
+        function updateBalanceDisplay() {
+            const balance = getBalance();
+            document.getElementById('balance').textContent = formatNumber(balance);
+            document.getElementById('stats-balance').textContent = formatNumber(balance);
+        }
+
+        // Wette setzen
+        function changeBet(amount) {
+            const betInput = document.getElementById('bet-input');
+            let currentBet = parseFloat(betInput.value) || 0;
+            currentBet = Math.max(1, currentBet + amount);
+            betInput.value = currentBet;
+            updateBetDisplay();
+        }
+
+        function setCustomBet(value) {
+            const bet = Math.max(1, parseFloat(value) || 100);
+            document.getElementById('bet-input').value = bet;
+            updateBetDisplay();
+        }
+
+        function halfBet() {
+            const betInput = document.getElementById('bet-input');
+            const currentBet = parseFloat(betInput.value) || 0;
+            betInput.value = Math.max(1, Math.floor(currentBet / 2));
+            updateBetDisplay();
+        }
+
+        function doubleBet() {
+            const betInput = document.getElementById('bet-input');
+            const currentBet = parseFloat(betInput.value) || 0;
+            betInput.value = currentBet * 2;
+            updateBetDisplay();
+        }
+
+        function setAllIn() {
+            const balance = getBalance();
+            document.getElementById('bet-input').value = balance;
+            updateBetDisplay();
+        }
+
+        // Auto Cashout setzen
+        function setAutoCashout(value) {
+            autoCashoutTarget = Math.max(1.01, parseFloat(value) || 2.00);
+            document.getElementById('auto-cashout-input').value = autoCashoutTarget.toFixed(2);
+        }
+
+        function updateBetDisplay() {
+            const bet = parseFloat(document.getElementById('bet-input').value) || 0;
+            currentBet = bet;
+            document.getElementById('current-bet').textContent = formatNumber(bet);
+            document.getElementById('current-bet-display').textContent = formatNumber(bet);
+            updatePotentialWin();
+        }
+
+        function updatePotentialWin() {
+            const bet = parseFloat(document.getElementById('bet-input').value) || 0;
+            const potentialWin = Math.floor(bet * currentMultiplier);
+            document.getElementById('potential-win').textContent = formatNumber(potentialWin);
+        }
+
+        // Nachrichten
+        function showMessage(text, type = '') {
+            const messageEl = document.getElementById('game-message');
+            messageEl.textContent = text;
+            messageEl.className = 'game-message ' + type;
+        }
+
+        // Crash Point berechnen (exponentiell verteilt)
+        function calculateCrashPoint() {
+            const r = Math.random();
+            let crash = 1 + (-Math.log(1 - r) * 2);
+            crash = Math.min(crash, 50);
+            return Math.max(1.01, crash);
+        }
+
+        // Multiplikator aktualisieren
+        function updateMultiplier(timestamp) {
+            if (gameState !== 'running') return;
+
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const deltaTime = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            const growthRate = 0.015 + (currentMultiplier - 1) * 0.002;
+            currentMultiplier += growthRate * deltaTime * 60;
+
+            const multiplierEl = document.getElementById('multiplier');
+            multiplierEl.textContent = formatMultiplier(currentMultiplier);
+            updatePotentialWin();
+
+            // Auto Cashout check
+            if (currentMultiplier >= autoCashoutTarget) {
+                cashOut();
+                return;
+            }
+
+            if (currentMultiplier >= crashPoint) {
+                crashGame();
+            } else {
+                animationId = requestAnimationFrame(updateMultiplier);
+            }
+        }
+
+        // Spiel starten
+        function startGame() {
+            if (gameState !== 'idle') return;
+
+            const betInput = document.getElementById('bet-input');
+            const bet = parseFloat(betInput.value);
+            const balance = getBalance();
+
+            if (bet <= 0) {
+                showMessage('Wette muss größer als 0 sein!', 'lose');
+                return;
+            }
+
+            if (bet > balance) {
+                showMessage('Unzureichendes Guthaben!', 'lose');
+                return;
+            }
+
+            // Wette abziehen mit balance.js
+            if (typeof deductFromBalance === 'function') {
+                deductFromBalance(bet).then((success) => {
+                    if (!success) {
+                        showMessage('Unzureichendes Guthaben!', 'lose');
+                        return;
+                    }
+                    startGameAfterBet(bet);
+                });
+            } else {
+                // Fallback
+                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
+                updateBalanceDisplay();
+                startGameAfterBet(bet);
+            }
+        }
+
+        // Spiel nach Wetteabzug starten
+        function startGameAfterBet(bet) {
+            // Spiel zurücksetzen
+            currentBet = bet;
+            currentMultiplier = 1.00;
+            crashPoint = calculateCrashPoint();
+            gameState = 'running';
+            lastTimestamp = 0;
+
+            // UI aktualisieren
+            document.getElementById('multiplier').textContent = '1.00x';
+            document.getElementById('multiplier').className = 'multiplier-value running';
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('cashout-btn').disabled = false;
+            document.getElementById('bet-input').disabled = true;
+            updateBetDisplay();
+
+            showMessage('Läuft...', 'running');
+
+            // Animation starten
+            animationId = requestAnimationFrame(updateMultiplier);
+        }
+
+        // Auszahlen
+        function cashOut() {
+            if (gameState !== 'running') return;
+
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            const winnings = Math.floor(currentBet * currentMultiplier);
+            
+            // Use balance.js functions
+            if (typeof addToBalance === 'function') {
+                addToBalance(winnings).then(() => {
+                    updateBalanceDisplay();
+                });
+            } else {
+                const balance = getBalance();
+                const newBalance = balance + winnings;
+                localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
+                updateBalanceDisplay();
+            }
+
+            // Statistiken aktualisieren
+            stats.totalGames++;
+            stats.wins++;
+            stats.totalWinnings += winnings;
+            if (currentMultiplier > stats.highestMultiplier) {
+                stats.highestMultiplier = currentMultiplier;
+            }
+            if (winnings > stats.highestWin) {
+                stats.highestWin = winnings;
+            }
+            saveStats();
+
+            gameState = 'cashedOut';
+
+            // UI aktualisieren
+            document.getElementById('multiplier').className = 'multiplier-value';
+            document.getElementById('cashout-btn').disabled = true;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('bet-input').disabled = false;
+            
+            gameState = 'idle';
+            currentMultiplier = 1.00;
+            document.getElementById('multiplier').textContent = '1.00x';
+
+            const message = `Ausgezahlt bei ${formatMultiplier(currentMultiplier)} – Du hast ${formatNumber(winnings)} gewonnen!`;
+            showMessage(message, 'win');
+
+            // Historie aktualisieren
+            addToHistory(formatMultiplier(currentMultiplier), true);
+            updateStatsDisplay();
+        }
+
+        // Spiel crasht
+        function crashGame() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            gameState = 'crashed';
+
+            // Statistiken aktualisieren
+            stats.totalGames++;
+            stats.losses++;
+            stats.totalLosses += currentBet;
+            if (crashPoint > stats.highestMultiplier) {
+                stats.highestMultiplier = crashPoint;
+            }
+            saveStats();
+
+            // Balance Anzeige aktualisieren (wichtig nach Crash)
+            updateBalanceDisplay();
+
+            // UI aktualisieren
+            document.getElementById('multiplier').className = 'multiplier-value';
+            document.getElementById('cashout-btn').disabled = true;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('bet-input').disabled = false;
+            
+            gameState = 'idle';
+            currentMultiplier = 1.00;
+            document.getElementById('multiplier').textContent = '1.00x';
+
+            const message = `Gecrasht bei ${formatMultiplier(crashPoint)} – Du hast ${formatNumber(currentBet)} verloren!`;
+            showMessage(message, 'lose');
+
+            // Historie aktualisieren
+            addToHistory(formatMultiplier(crashPoint), false);
+            updateStatsDisplay();
+        }
+
+        // Historie
+        function addToHistory(multiplier, won) {
+            const historyList = document.getElementById('history-list');
+            const li = document.createElement('li');
+            li.className = won ? 'win' : 'lose';
+            li.innerHTML = `<span class="history-multiplier">${multiplier}</span>${won ? 'Gewonnen' : 'Verloren'}`;
+            historyList.insertBefore(li, historyList.firstChild);
+            
+            // Nur die letzten 10 Einträge behalten
+            while (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        // Statistiken
+        function saveStats() {
+            localStorage.setItem('crash_stats', JSON.stringify(stats));
+        }
+
+        function loadStats() {
+            const saved = localStorage.getItem('crash_stats');
+            if (saved) {
+                stats = { ...stats, ...JSON.parse(saved) };
+            }
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('stats-total-games').textContent = stats.totalGames;
+            document.getElementById('stats-wins').textContent = stats.wins;
+            document.getElementById('stats-losses').textContent = stats.losses;
+            document.getElementById('stats-highest-multiplier').textContent = stats.highestMultiplier.toFixed(2) + 'x';
+            document.getElementById('stats-highest-win').textContent = formatNumber(stats.highestWin);
+            document.getElementById('stats-total-winnings').textContent = formatNumber(stats.totalWinnings);
+            document.getElementById('stats-total-losses').textContent = formatNumber(stats.totalLosses);
+            
+            const balance = getBalance();
+            const profit = stats.totalWinnings - stats.totalLosses;
+            document.getElementById('stats-balance').textContent = formatNumber(balance);
+            
+            const profitEl = document.getElementById('stats-profit');
+            profitEl.textContent = (profit >= 0 ? '+' : '') + formatNumber(profit);
+            profitEl.className = 'stat-value ' + (profit >= 0 ? 'positive' : 'negative');
+        }
+
+        // Modal
+        function showStatsModal() {
+            document.getElementById('stats-modal-overlay').style.display = 'flex';
+            document.getElementById('stats-modal').style.display = 'block';
+        }
+
+        function hideStatsModal() {
+            document.getElementById('stats-modal-overlay').style.display = 'none';
+            document.getElementById('stats-modal').style.display = 'none';
+        }
+
+        function resetStats() {
+            stats = {
+                totalGames: 0,
+                wins: 0,
+                losses: 0,
+                highestMultiplier: 0,
+                highestWin: 0,
+                totalWinnings: 0,
+                totalLosses: 0
+            };
+            saveStats();
+            updateStatsDisplay();
+            document.getElementById('history-list').innerHTML = '';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            updateBalanceDisplay();
+            updateBetDisplay();
+            updateStatsDisplay();
+
+            // Modal schließen
+            document.getElementById('close-stats-modal').addEventListener('click', hideStatsModal);
+            document.getElementById('stats-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) hideStatsModal();
+            });
+            
+            // Statistik zurücksetzen
+            document.getElementById('reset-stats-btn').addEventListener('click', resetStats);
+        });
+
+        // Balance Sync
+        setTimeout(function() {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            updateBalanceDisplay();
+        }, 50);
+    </script>
+</body>
+</html>

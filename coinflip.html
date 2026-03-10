@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coinflip - Das Münzspiel</title>
+    <link rel="stylesheet" href="coinflip.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header mit Spieltitel und Kontostand -->
+        <header class="game-header">
+            <h1>🪙 Coinflip 🪙</h1>
+            <div class="score-panel">
+                <div class="score-item">
+                    <span class="score-label">Balance</span>
+                    <span id="balance" class="score-value">1000</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Einsatz</span>
+                    <span id="current-bet" class="score-value">100</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Gewinne</span>
+                    <span id="total-wins" class="score-value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Spiele</span>
+                    <span id="total-games" class="score-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Haupt-Spielbereich -->
+        <main class="game-table">
+            <!-- Nachrichtenanzeige -->
+            <div id="game-message" class="game-message">Wähle Kopf oder Zahl!</div>
+
+            <!-- Münz-Anzeige -->
+            <div class="coin-display-section">
+                <div class="coin-container">
+                    <div class="coin" id="coin">
+                        <div class="coin-face heads">
+                            <span class="coin-symbol">🪙</span>
+                            <span class="coin-text">KOPF</span>
+                        </div>
+                        <div class="coin-face tails">
+                            <span class="coin-symbol">🪙</span>
+                            <span class="coin-text">ZAHL</span>
+                        </div>
+                    </div>
+                    <div class="coin-result" id="coin-result"></div>
+                </div>
+            </div>
+
+            <!-- Einsatz-Steuerung -->
+            <div class="bet-controls">
+                <div class="quick-bets">
+                    <button class="bet-btn quick-bet" onclick="changeBet(-100)">-100</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-50)">-50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(-10)">-10</button>
+                    <input type="number" id="bet-input" class="bet-input" min="1" value="100" onchange="setCustomBet(this.value)">
+                    <button class="bet-btn quick-bet" onclick="changeBet(10)">+10</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(50)">+50</button>
+                    <button class="bet-btn quick-bet" onclick="changeBet(100)">+100</button>
+                </div>
+                <div class="bet-actions">
+                    <button class="bet-btn action-btn" onclick="halfBet()">½</button>
+                    <button class="bet-btn action-btn" onclick="doubleBet()">×2</button>
+                    <button class="bet-btn action-btn all-in" onclick="setAllIn()">ALL IN</button>
+                </div>
+            </div>
+
+            <!-- Münz-Auswahl -->
+            <div class="coin-selection-section">
+                <div class="coin-choice-selector">
+                    <button class="choice-btn heads active" id="btn-heads" onclick="setChoice('heads')">
+                        <span class="choice-symbol">🪙</span>
+                        <span class="choice-label">KOPF</span>
+                        <span class="choice-chance">Chance: 50%</span>
+                    </button>
+                    <button class="choice-btn tails" id="btn-tails" onclick="setChoice('tails')">
+                        <span class="choice-symbol">🪙</span>
+                        <span class="choice-label">ZAHL</span>
+                        <span class="choice-chance">Chance: 50%</span>
+                    </button>
+                </div>
+
+                <div class="multiplier-display">
+                    <span class="multiplier-label">Multiplikator:</span>
+                    <span id="current-multiplier" class="multiplier-value">2.00x</span>
+                </div>
+            </div>
+
+            <!-- Aktionsbuttons -->
+            <section class="action-buttons">
+                <button id="flip-btn" class="btn btn-primary" onclick="flipCoin()">🪙 Münze werfen</button>
+            </section>
+
+            <!-- Spielhistorie -->
+            <section class="game-history">
+                <h3>Spielhistorie <button class="stats-btn" onclick="showStatsModal()">📊 Statistik</button></h3>
+                <ul id="history-list"></ul>
+            </section>
+        </main>
+
+        <!-- Spielregeln -->
+        <aside class="rules-panel">
+            <h3>🪙 Coinflip Regeln 🪙</h3>
+            <ul>
+                <li><strong>Ziel:</strong> Raten Sie, ob Kopf oder Zahl erscheint</li>
+                <li><strong>KOPF:</strong> Die Seite mit dem Kopf</li>
+                <li><strong>ZAHL:</strong> Die Seite mit der Zahl</li>
+                <li><strong>Multiplikator:</strong> Immer 2x bei korrekter Vorhersage</li>
+                <li><strong>Fairness:</strong> 50/50 Gewinnchance</li>
+                <li><strong>Risiko:</strong> Einfachstes Glücksspiel</li>
+            </ul>
+            
+            <!-- Auszahlungstabelle -->
+            <div class="payout-table">
+                <h4>Auszahlungen</h4>
+                <table>
+                    <tr><td>Kopf gewinnt</td><td>2.00x</td></tr>
+                    <tr><td>Zahl gewinnt</td><td>2.00x</td></tr>
+                    <tr><td>Verlust</td><td>Einsatz verloren</td></tr>
+                </table>
+            </div>
+        </aside>
+
+        <!-- Statistik Modal -->
+        <div id="stats-modal-overlay" class="modal-overlay">
+            <div id="stats-modal" class="stats-modal">
+                <div class="stats-modal-header">
+                    <h2>📊 Ihre Statistik</h2>
+                    <button id="close-stats-modal" class="close-modal">&times;</button>
+                </div>
+                <div class="stats-modal-body">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Spiele Gespielt</span>
+                            <span id="stats-total-games" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gewonnene Spiele</span>
+                            <span id="stats-wins" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Verlorene Spiele</span>
+                            <span id="stats-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Kopf Wahrscheinlichkeit</span>
+                            <span id="stats-heads-percent" class="stat-value">0%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Höchster Gewinn</span>
+                            <span id="stats-highest-win" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gesamt Gewonnen</span>
+                            <span id="stats-total-winnings" class="stat-value win">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Gesamt Verloren</span>
+                            <span id="stats-total-losses" class="stat-value lose">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Aktuelle Balance</span>
+                            <span id="stats-balance" class="stat-value">1000</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Profit</span>
+                            <span id="stats-profit" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="stats-actions">
+                        <button id="reset-stats-btn" class="btn btn-danger">Statistik Zurücksetzen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script>
+        // Spielzustand
+        let gameState = 'idle'; // idle, flipping
+        let currentBet = 100;
+        let choice = 'heads'; // 'heads' oder 'tails'
+        const currentMultiplier = 2.00;
+        
+        // Statistiken
+        let stats = {
+            totalGames: 0,
+            wins: 0,
+            losses: 0,
+            headsCount: 0,
+            tailsCount: 0,
+            highestWin: 0,
+            totalWinnings: 0,
+            totalLosses: 0
+        };
+
+        // Formatierung
+        function formatNumber(num) {
+            return Math.floor(num).toLocaleString('de-DE');
+        }
+
+        function formatMultiplier(num) {
+            return num.toFixed(2) + 'x';
+        }
+
+        // Balance Management
+        function getBalance() {
+            return typeof getBalanceSync === 'function' ? getBalanceSync() : 1000;
+        }
+
+        function updateBalanceDisplay() {
+            const balance = getBalance();
+            document.getElementById('balance').textContent = formatNumber(balance);
+            document.getElementById('stats-balance').textContent = formatNumber(balance);
+        }
+
+        // Wette setzen
+        function changeBet(amount) {
+            if (gameState !== 'idle') return;
+            
+            const betInput = document.getElementById('bet-input');
+            let currentBetValue = parseFloat(betInput.value) || 0;
+            currentBetValue = Math.max(1, currentBetValue + amount);
+            betInput.value = currentBetValue;
+            updateBetDisplay();
+        }
+
+        function setCustomBet(value) {
+            if (gameState !== 'idle') return;
+            
+            const bet = Math.max(1, parseFloat(value) || 100);
+            document.getElementById('bet-input').value = bet;
+            updateBetDisplay();
+        }
+
+        function halfBet() {
+            if (gameState !== 'idle') return;
+            
+            const betInput = document.getElementById('bet-input');
+            const currentBetValue = parseFloat(betInput.value) || 0;
+            betInput.value = Math.max(1, Math.floor(currentBetValue / 2));
+            updateBetDisplay();
+        }
+
+        function doubleBet() {
+            if (gameState !== 'idle') return;
+            
+            const betInput = document.getElementById('bet-input');
+            const currentBetValue = parseFloat(betInput.value) || 0;
+            betInput.value = currentBetValue * 2;
+            updateBetDisplay();
+        }
+
+        function setAllIn() {
+            if (gameState !== 'idle') return;
+            
+            const balance = getBalance();
+            document.getElementById('bet-input').value = balance;
+            updateBetDisplay();
+        }
+
+        // Münzseite wählen
+        function setCoinChoice(coinSide) {
+            if (gameState !== 'idle') return;
+            
+            choice = coinSide;
+            
+            // UI aktualisieren
+            document.getElementById('btn-heads').classList.remove('active');
+            document.getElementById('btn-tails').classList.remove('active');
+            document.getElementById('btn-' + coinSide).classList.add('active');
+        }
+
+        // Kompatibilität mit alter Funktion
+        function setChoice(side) {
+            setCoinChoice(side);
+        }
+
+        function updateBetDisplay() {
+            const bet = parseFloat(document.getElementById('bet-input').value) || 0;
+            currentBet = bet;
+            document.getElementById('current-bet').textContent = formatNumber(bet);
+        }
+
+        // Nachrichten
+        function showMessage(text, type = '') {
+            const messageEl = document.getElementById('game-message');
+            messageEl.textContent = text;
+            messageEl.className = 'game-message ' + type;
+        }
+
+        // Münzflip Animation
+        function flipCoin() {
+            if (gameState !== 'idle') return;
+
+            const betInput = document.getElementById('bet-input');
+            const bet = parseFloat(betInput.value);
+            const balance = getBalance();
+
+            if (bet <= 0) {
+                showMessage('Wette muss größer als 0 sein!', 'lose');
+                return;
+            }
+
+            if (bet > balance) {
+                showMessage('Unzureichendes Guthaben!', 'lose');
+                return;
+            }
+
+            // Wette abziehen mit balance.js
+            if (typeof deductFromBalance === 'function') {
+                deductFromBalance(bet).then((success) => {
+                    if (!success) {
+                        showMessage('Unzureichendes Guthaben!', 'lose');
+                        return;
+                    }
+                    startFlipAnimation();
+                });
+            } else {
+                // Fallback
+                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
+                updateBalanceDisplay();
+                startFlipAnimation();
+            }
+        }
+
+        // Münzflip-Animation starten
+        function startFlipAnimation() {
+            gameState = 'flipping';
+            
+            // UI aktualisieren
+            document.getElementById('flip-btn').disabled = true;
+            document.getElementById('bet-input').disabled = true;
+            document.getElementById('btn-heads').disabled = true;
+            document.getElementById('btn-tails').disabled = true;
+            
+            showMessage('Münze wird geworfen...', 'running');
+            
+            // Münzresultat bestimmen (50/50)
+            const result = Math.random() < 0.5 ? 'heads' : 'tails';
+            const won = result === choice;
+            
+            // Animation starten
+            const coin = document.getElementById('coin');
+            const flips = 5 + Math.floor(Math.random() * 3); // 5-7 Umdrehungen
+            const duration = 2000; // 2 Sekunden
+            
+            coin.style.transition = `transform ${duration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
+            coin.style.transform = `rotateY(${flips * 180}deg)`;
+            
+            // Nach der Animation Ergebnis anzeigen
+            setTimeout(() => {
+                // Zusätzliche Rotation für die gewünschte Seite
+                if ((flips % 2 === 0 && result === 'tails') || (flips % 2 === 1 && result === 'heads')) {
+                    coin.style.transform = `rotateY(${flips * 180 + 180}deg)`;
+                }
+                
+                finalizeFlip(result, won);
+            }, duration);
+        }
+
+        // Münzergebnis finalisieren
+        function finalizeFlip(result, won) {
+            const coin = document.getElementById('coin');
+            const coinResult = document.getElementById('coin-result');
+            
+            // Statistiken aktualisieren
+            stats.totalGames++;
+            
+            if (result === 'heads') {
+                stats.headsCount++;
+            } else {
+                stats.tailsCount++;
+            }
+            
+            if (won) {
+                const winnings = Math.floor(currentBet * currentMultiplier);
+                stats.wins++;
+                stats.totalWinnings += winnings;
+                if (winnings > stats.highestWin) {
+                    stats.highestWin = winnings;
+                }
+                
+                // Gewinn zur Balance hinzufügen
+                if (typeof addToBalance === 'function') {
+                    addToBalance(winnings).then(() => {
+                        updateBalanceDisplay();
+                    });
+                } else {
+                    const balance = getBalance();
+                    const newBalance = balance + winnings;
+                    localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
+                    updateBalanceDisplay();
+                }
+                
+                const choiceText = choice === 'heads' ? 'KOPF' : 'ZAHL';
+                showMessage(`Gewonnen! ${choiceText} → ${formatNumber(winnings)}`, 'win');
+                coinResult.textContent = '✅';
+                coinResult.className = 'coin-result win';
+            } else {
+                stats.losses++;
+                stats.totalLosses += currentBet;
+                
+                // Balance Anzeige aktualisieren
+                updateBalanceDisplay();
+                
+                const choiceText = choice === 'heads' ? 'KOPF' : 'ZAHL';
+                const resultText = result === 'heads' ? 'KOPF' : 'ZAHL';
+                showMessage(`Verloren! ${resultText} kam, nicht ${choiceText}`, 'lose');
+                coinResult.textContent = '❌';
+                coinResult.className = 'coin-result lose';
+            }
+            
+            saveStats();
+            
+            // Historie aktualisieren
+            addToHistory(result, won);
+            updateStatsDisplay();
+            
+            // Spiel zurücksetzen
+            setTimeout(() => {
+                gameState = 'idle';
+                document.getElementById('flip-btn').disabled = false;
+                document.getElementById('bet-input').disabled = false;
+                document.getElementById('btn-heads').disabled = false;
+                document.getElementById('btn-tails').disabled = false;
+                
+                // Münze zurück setzen
+                coin.style.transition = 'transform 0.3s ease';
+                coin.style.transform = 'rotateY(0deg)';
+                
+                coinResult.textContent = '';
+                coinResult.className = 'coin-result';
+            }, 2000);
+        }
+
+        // Historie
+        function addToHistory(result, won) {
+            const historyList = document.getElementById('history-list');
+            const li = document.createElement('li');
+            li.className = won ? 'win' : 'lose';
+            const resultText = result === 'heads' ? 'KOPF' : 'ZAHL';
+            li.innerHTML = `<span class="history-coin">${result === 'heads' ? '🪙' : '🪙'}</span>${resultText} ${won ? '✓' : '✗'}`;
+            historyList.insertBefore(li, historyList.firstChild);
+            
+            // Nur die letzten 10 Einträge behalten
+            while (historyList.children.length > 10) {
+                historyList.removeChild(historyList.lastChild);
+            }
+        }
+
+        // Statistiken
+        function saveStats() {
+            localStorage.setItem('coinflip_stats', JSON.stringify(stats));
+        }
+
+        function loadStats() {
+            const saved = localStorage.getItem('coinflip_stats');
+            if (saved) {
+                stats = { ...stats, ...JSON.parse(saved) };
+            }
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('stats-total-games').textContent = stats.totalGames;
+            document.getElementById('stats-wins').textContent = stats.wins;
+            document.getElementById('stats-losses').textContent = stats.losses;
+            document.getElementById('stats-highest-win').textContent = formatNumber(stats.highestWin);
+            document.getElementById('stats-total-winnings').textContent = formatNumber(stats.totalWinnings);
+            document.getElementById('stats-total-losses').textContent = formatNumber(stats.totalLosses);
+            
+            // Kopf/Tail Statistik berechnen
+            const totalFlips = stats.headsCount + stats.tailsCount;
+            const headsPercent = totalFlips > 0 ? ((stats.headsCount / totalFlips) * 100).toFixed(1) : 0;
+            document.getElementById('stats-heads-percent').textContent = headsPercent + '%';
+            
+            const balance = getBalance();
+            const profit = stats.totalWinnings - stats.totalLosses;
+            document.getElementById('stats-balance').textContent = formatNumber(balance);
+            
+            const profitEl = document.getElementById('stats-profit');
+            profitEl.textContent = (profit >= 0 ? '+' : '') + formatNumber(profit);
+            profitEl.className = 'stat-value ' + (profit >= 0 ? 'positive' : 'negative');
+        }
+
+        // Modal
+        function showStatsModal() {
+            document.getElementById('stats-modal-overlay').style.display = 'flex';
+            document.getElementById('stats-modal').style.display = 'block';
+        }
+
+        function hideStatsModal() {
+            document.getElementById('stats-modal-overlay').style.display = 'none';
+            document.getElementById('stats-modal').style.display = 'none';
+        }
+
+        function resetStats() {
+            stats = {
+                totalGames: 0,
+                wins: 0,
+                losses: 0,
+                headsCount: 0,
+                tailsCount: 0,
+                highestWin: 0,
+                totalWinnings: 0,
+                totalLosses: 0
+            };
+            saveStats();
+            updateStatsDisplay();
+            document.getElementById('history-list').innerHTML = '';
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStats();
+            updateBalanceDisplay();
+            updateBetDisplay();
+            updateStatsDisplay();
+
+            // Modal schließen
+            document.getElementById('close-stats-modal').addEventListener('click', hideStatsModal);
+            document.getElementById('stats-modal-overlay').addEventListener('click', function(e) {
+                if (e.target === this) hideStatsModal();
+            });
+            
+            // Statistik zurücksetzen
+            document.getElementById('reset-stats-btn').addEventListener('click', resetStats);
+        });
+
+        // Balance Sync
+        setTimeout(function() {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            updateBalanceDisplay();
+        }, 50);
+    </script>
+</body>
+</html>
