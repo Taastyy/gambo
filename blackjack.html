@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blackjack - The Classic Game</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="blackjack.css">
 </head>
 <body>
     <div class="game-container">
-        <!-- Navigation -->
-        <nav class="game-nav">
-            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
-        </nav>
-
-        <!-- Header with game title and score display -->
-        <header class="game-header">
-            <h1>♠️ ♥️ Blackjack ♠️ ♥️</h1>
+        <!-- Top bar: nav + title + scores -->
+        <header class="top-bar">
+            <a href="index.html" class="nav-link">← Menu</a>
+            <h1>Blackjack</h1>
             <div class="score-panel">
                 <div class="score-item">
                     <span class="score-label">Games</span>
@@ -24,15 +20,15 @@
                 </div>
                 <div class="score-item">
                     <span class="score-label">Wins</span>
-                    <span id="wins-count" class="score-value">0</span>
+                    <span id="wins-count" class="score-value wins">0</span>
                 </div>
                 <div class="score-item">
                     <span class="score-label">Losses</span>
-                    <span id="losses-count" class="score-value">0</span>
+                    <span id="losses-count" class="score-value losses">0</span>
                 </div>
                 <div class="score-item">
                     <span class="score-label">Pushes</span>
-                    <span id="pushes-count" class="score-value">0</span>
+                    <span id="pushes-count" class="score-value pushes">0</span>
                 </div>
             </div>
         </header>
@@ -41,7 +37,10 @@
         <main class="game-table">
             <!-- Dealer area -->
             <section class="dealer-area">
-                <h2>Dealer <span id="dealer-score" class="hand-score"></span></h2>
+                <div class="area-label">
+                    <span class="label-text">Dealer</span>
+                    <span id="dealer-score" class="hand-score"></span>
+                </div>
                 <div id="dealer-cards" class="cards-container"></div>
             </section>
 
@@ -53,38 +52,39 @@
 
             <!-- Player area -->
             <section class="player-area">
-                <div class="player-info">
-                    <h2>Your Hand <span id="player-score" class="hand-score"></span></h2>
-                    <div class="betting-section">
-                        <div class="bet-display">
-                            <span class="bet-label">Bet:</span>
-                            <span id="current-bet" class="bet-amount">100</span>
-                            <span id="balance-display" class="balance">Balance: 1000</span>
-                        </div>
-                        <div class="betting-controls">
-                            <div class="quick-bets">
-                                <button class="bet-btn quick-bet" onclick="setBet(10)">10</button>
-                                <button class="bet-btn quick-bet" onclick="setBet(25)">25</button>
-                                <button class="bet-btn quick-bet" onclick="setBet(50)">50</button>
-                                <button class="bet-btn quick-bet" onclick="setBet(100)">100</button>
-                                <button class="bet-btn quick-bet" onclick="setBet(250)">250</button>
-                                <button class="bet-btn quick-bet" onclick="setBet(500)">500</button>
-                            </div>
-                            <div class="custom-bet">
-                                <button class="bet-btn adjust-btn" onclick="changeBet(-1)">-1</button>
-                                <button class="bet-btn adjust-btn" onclick="changeBet(-10)">-10</button>
-                                <button class="bet-btn adjust-btn" onclick="changeBet(-25)">-25</button>
-                                <input type="number" id="custom-bet-input" class="bet-input" min="1" value="100" onchange="setCustomBet(this.value)">
-                                <button class="bet-btn adjust-btn" onclick="changeBet(25)">+25</button>
-                                <button class="bet-btn adjust-btn" onclick="changeBet(10)">+10</button>
-                                <button class="bet-btn adjust-btn" onclick="changeBet(1)">+1</button>
-                            </div>
-                            <div class="bet-actions">
-                                <button class="bet-btn action-btn" onclick="halfBet()">½</button>
-                                <button class="bet-btn action-btn" onclick="doubleCurrentBet()">×2</button>
-                                <button class="bet-btn action-btn all-in" onclick="setAllIn()">ALL IN</button>
-                            </div>
-                        </div>
+                <div class="player-header">
+                    <div class="area-label">
+                        <span class="label-text">Your Hand</span>
+                        <span id="player-score" class="hand-score"></span>
+                    </div>
+                    <div class="bet-info-inline">
+                        <span class="bet-label">Bet:</span>
+                        <span id="current-bet" class="bet-amount">100</span>
+                        <span class="bet-sep">·</span>
+                        <span id="balance-display" class="balance">Balance: 1000</span>
+                    </div>
+                </div>
+                <div class="betting-controls">
+                    <div class="bet-row">
+                        <button class="chip" onclick="setBet(10)">10</button>
+                        <button class="chip" onclick="setBet(25)">25</button>
+                        <button class="chip" onclick="setBet(50)">50</button>
+                        <button class="chip" onclick="setBet(100)">100</button>
+                        <button class="chip" onclick="setBet(250)">250</button>
+                        <button class="chip" onclick="setBet(500)">500</button>
+                    </div>
+                    <div class="bet-row">
+                        <button class="bet-btn" onclick="changeBet(-25)">−25</button>
+                        <button class="bet-btn" onclick="changeBet(-10)">−10</button>
+                        <button class="bet-btn" onclick="changeBet(-1)">−1</button>
+                        <input type="number" id="custom-bet-input" class="bet-input" min="1" value="100" onchange="setCustomBet(this.value)">
+                        <button class="bet-btn" onclick="changeBet(1)">+1</button>
+                        <button class="bet-btn" onclick="changeBet(10)">+10</button>
+                        <button class="bet-btn" onclick="changeBet(25)">+25</button>
+                        <span class="bet-sep-v"></span>
+                        <button class="bet-btn" onclick="halfBet()">½</button>
+                        <button class="bet-btn" onclick="doubleCurrentBet()">×2</button>
+                        <button class="bet-btn all-in" onclick="setAllIn()">ALL IN</button>
                     </div>
                 </div>
                 <div id="player-cards" class="cards-container"></div>
@@ -92,48 +92,55 @@
 
             <!-- Action buttons -->
             <section class="action-buttons">
-                <button id="deal-btn" class="btn btn-primary" onclick="dealGame()">Deal Cards</button>
-                <button id="hit-btn" class="btn btn-success" onclick="hitCard()" disabled>Hit</button>
-                <button id="stand-btn" class="btn btn-warning" onclick="standGame()" disabled>Stand</button>
-                <button id="double-btn" class="btn btn-danger" onclick="doubleBet()" disabled>Double</button>
-                <button id="split-btn" class="btn btn-info" onclick="splitHand()" disabled>Split</button>
-                <button id="insurance-btn" class="btn btn-secondary" onclick="takeInsurance()" disabled>Insurance</button>
-                <button id="surrender-btn" class="btn btn-dark" onclick="surrenderGame()" disabled>Surrender</button>
+                <button id="deal-btn" class="btn btn-deal" onclick="dealGame()">Deal</button>
+                <button id="hit-btn" class="btn btn-hit" onclick="hitCard()" disabled>Hit</button>
+                <button id="stand-btn" class="btn btn-stand" onclick="standGame()" disabled>Stand</button>
+                <button id="double-btn" class="btn btn-double" onclick="doubleBet()" disabled>Double</button>
+                <button id="split-btn" class="btn btn-split" onclick="splitHand()" disabled>Split</button>
+                <button id="insurance-btn" class="btn btn-insurance" onclick="takeInsurance()" disabled>Insurance</button>
+                <button id="surrender-btn" class="btn btn-surrender" onclick="surrenderGame()" disabled>Surrender</button>
             </section>
-            
-            <!-- Strategy Helper Toggle -->
+
+            <!-- Strategy toggle -->
             <div class="strategy-toggle">
                 <label class="toggle-label">
                     <input type="checkbox" id="strategy-toggle" checked>
-                    <span>Perfect Strategy Helper</span>
+                    <span class="toggle-slider"></span>
+                    <span>Strategy Helper</span>
                 </label>
             </div>
         </main>
 
-        <!-- Game rules panel -->
-        <aside class="rules-panel">
-            <h3>♠️ Game Rules ♥️</h3>
-            <ul>
-                <li>Goal: Get closer to 21 than the dealer without going over</li>
-                <li>Ace counts as 1 or 11</li>
-                <li>Face cards count as 10</li>
-                <li>Blackjack (Ace + 10/Face) pays 3:2</li>
-                <li>Dealer must stand on 17 or higher</li>
-                <li>Split: Divide two matching cards into two hands (additional bet required)</li>
-            </ul>
+        <!-- Sidebar: rules + history -->
+        <aside class="sidebar">
+            <div class="rules-panel">
+                <h3>Rules</h3>
+                <ul>
+                    <li>Get closer to 21 than dealer</li>
+                    <li>Ace = 1 or 11</li>
+                    <li>Face cards = 10</li>
+                    <li>Blackjack pays 3:2</li>
+                    <li>Dealer stands on 17+</li>
+                    <li>Split matching cards</li>
+                </ul>
+            </div>
+            <div class="shortcuts-panel">
+                <div class="shortcut"><span class="key">H</span> Hit</div>
+                <div class="shortcut"><span class="key">S</span> Stand</div>
+                <div class="shortcut"><span class="key">D</span> Double</div>
+                <div class="shortcut"><span class="key">P</span> Split</div>
+            </div>
+            <div class="history-panel">
+                <h3>History <button class="stats-btn" onclick="showStatsModal()">📊</button></h3>
+                <ul id="history-list"></ul>
+            </div>
         </aside>
-
-        <!-- Game history -->
-        <section class="game-history">
-            <h3>Game History <button class="stats-btn" onclick="showStatsModal()">📊 Stats</button></h3>
-            <ul id="history-list"></ul>
-        </section>
 
         <!-- Stats Modal -->
         <div id="stats-modal-overlay" class="modal-overlay">
             <div id="stats-modal" class="stats-modal">
                 <div class="stats-modal-header">
-                    <h2>📊 Your Statistics</h2>
+                    <h2>Statistics</h2>
                     <button id="close-stats-modal" class="close-modal">&times;</button>
                 </div>
                 <div class="stats-modal-body">
@@ -204,7 +211,7 @@
                         </div>
                     </div>
                     <div class="stats-actions">
-                        <button id="reset-stats-btn" class="btn btn-danger">Reset Statistics</button>
+                        <button id="reset-stats-btn" class="btn btn-reset">Reset Statistics</button>
                     </div>
                 </div>
             </div>
@@ -213,12 +220,8 @@
 
     <script src="balance.js"></script>
     <script>
-        // Sync balance after a short delay to ensure DOM is ready
         setTimeout(function() {
-            if (typeof syncBalance === 'function') {
-                syncBalance();
-            }
-            // Also update immediately with cached balance
+            if (typeof syncBalance === 'function') syncBalance();
             if (typeof getBalanceSync === 'function') {
                 var balanceEl = document.getElementById('balance');
                 var balanceDisplayEl = document.getElementById('balance-display');
