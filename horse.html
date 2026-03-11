@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🐎 PFERDERENNEN - Das ultimative Rennspiel</title>
     <link rel="stylesheet" href="horse.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="game-container">
         <!-- Navigation -->
@@ -100,7 +104,7 @@
                             <div class="horse-name">GOLD</div>
                         </div>
                     </div>
-                    
+
                     <!-- Finish Line -->
                     <div class="finish-line"></div>
                     <div class="finish-label">ZIEL</div>
@@ -219,16 +223,34 @@
                     <li><strong>Spannung:</strong> Animation des gesamten Rennens!</li>
                 </ul>
             </div>
-            
+
             <div class="panel-section payouts-panel">
                 <h3>📊 QUOTEN</h3>
                 <table class="payouts-table">
-                    <tr><td>🏇 FLITZER</td><td>x3.0</td></tr>
-                    <tr><td>🐎 STURM</td><td>x4.0</td></tr>
-                    <tr><td>🏇 BLITZ</td><td>x5.0</td></tr>
-                    <tr><td>🐎 DONNER</td><td>x6.0</td></tr>
-                    <tr><td>🏇 FEUER</td><td>x8.0</td></tr>
-                    <tr><td>🐎 GOLD</td><td>x12.0</td></tr>
+                    <tr>
+                        <td>🏇 FLITZER</td>
+                        <td id="side-odds-1">x3.0</td>
+                    </tr>
+                    <tr>
+                        <td>🐎 STURM</td>
+                        <td id="side-odds-2">x4.0</td>
+                    </tr>
+                    <tr>
+                        <td>🏇 BLITZ</td>
+                        <td id="side-odds-3">x5.0</td>
+                    </tr>
+                    <tr>
+                        <td>🐎 DONNER</td>
+                        <td id="side-odds-4">x6.0</td>
+                    </tr>
+                    <tr>
+                        <td>🏇 FEUER</td>
+                        <td id="side-odds-5">x8.0</td>
+                    </tr>
+                    <tr>
+                        <td>🐎 GOLD</td>
+                        <td id="side-odds-6">x12.0</td>
+                    </tr>
                 </table>
             </div>
 
@@ -330,7 +352,7 @@
     <script src="horse.js"></script>
     <script>
         // Balance sync after DOM is ready
-        setTimeout(function() {
+        setTimeout(function () {
             if (typeof syncBalance === 'function') {
                 syncBalance();
             }
@@ -344,4 +366,5 @@
         }, 50);
     </script>
 </body>
+
 </html>
