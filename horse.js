@@ -311,53 +311,107 @@ async function runRace() {
     const trackWidth = document.getElementById('race-track').offsetWidth - 100;
 
     // Initialize positions
-    const positions = [0, 0, 0, 0, 0, 0];
-    const speeds = [];
+    const positions = Array(HORSES.length).fill(0);
 
-    // Generate random speeds for each horse (weighted towards the odds)
-    HORSES.forEach((horse, index) => {
-        // Higher odds = lower base speed, ensure it doesn't go below min speed of 3
-        const baseSpeed = Math.max(3, 15 - (horse.odds * 0.5));
-        const randomFactor = Math.random() * 5;
-        speeds.push(baseSpeed + randomFactor);
+    // === BETTER WAY: Casino Probability Logic ===
+    // Pre-determine the winner mathematically based on exact odds to guarantee fairness
+    let totalProb = 0;
+    const probs = HORSES.map(h => {
+        const prob = 1 / h.odds; // Lower odds -> Higher probability
+        totalProb += prob;
+        return prob;
     });
-
+    
+    let rand = Math.random() * totalProb;
+    let targetWinnerIndex = HORSES.length - 1;
+    for (let i = 0; i < HORSES.length; i++) {
+        if (rand < probs[i]) {
+            targetWinnerIndex = i;
+            break;
+        }
+        rand -= probs[i];
+    }
+    
+    // Plan the race duration for each horse
+    const winnerFinishFrame = 80 + Math.floor(Math.random() * 20); // Winner needs 80-100 frames
+    const finishFrames = [];
+    for (let i = 0; i < HORSES.length; i++) {
+        if (i === targetWinnerIndex) {
+            finishFrames.push(winnerFinishFrame);
+        } else {
+            // Losers arrive 2 to 40 frames later than the winner
+            finishFrames.push(winnerFinishFrame + 2 + Math.random() * 38);
+        }
+    }
+    
+    let currentFrame = 0;
+    let raceFinished = false;
+    
     // Animate race
-    while (Math.max(...positions) < trackWidth) {
+    while (!raceFinished) {
+        currentFrame++;
+        let anyCrossed = false;
+        
         horses.forEach((horseEl, index) => {
-            // Add some randomness to each step
-            const step = speeds[index] + (Math.random() * 2 - 1);
-            positions[index] += step;
-
-            // Clamp to finish line
-            if (positions[index] > trackWidth) {
+            let framesLeft = finishFrames[index] - currentFrame;
+            let distLeft = trackWidth - positions[index];
+            let step = 0;
+            
+            if (framesLeft <= 0) {
                 positions[index] = trackWidth;
+            } else {
+                if (framesLeft < 15) {
+                    // Smoothly close remaining distance near finish line
+                    step = distLeft / framesLeft;
+                    step += (Math.random() * 1.5 - 0.75); // slight variance
+                } else {
+                    // Average step required
+                    const avgStep = trackWidth / finishFrames[index];
+                    // Wild variance during the bulk of the race! (0.2x to 1.8x)
+                    step = avgStep * (0.2 + Math.random() * 1.6);
+                    
+                    // Add random drama bursts
+                    if (Math.random() < 0.05) step *= 2.5; // sprint
+                    if (Math.random() < 0.05) step *= 0.3; // stumble
+                }
+                positions[index] += step;
             }
-
+            
+            // Re-clamp
+            if (positions[index] >= trackWidth) {
+                positions[index] = trackWidth;
+                if (index === targetWinnerIndex) {
+                    anyCrossed = true; // Winner has crossed!
+                }
+            }
+            
             horseEl.style.left = `${50 + positions[index]}px`;
-
+            
             // Add racing class for animation
-            if (positions[index] > 10) {
+            if (positions[index] > 10 && positions[index] < trackWidth) {
                 horseEl.classList.add('racing');
+            } else {
+                horseEl.classList.remove('racing');
             }
         });
-
-        await delay(50);
+        
+        if (anyCrossed) {
+            raceFinished = true;
+        }
+        
+        await delay(40);
     }
-
+    
     // Stop animations
     horses.forEach(horseEl => {
         horseEl.classList.remove('racing');
     });
-
-    // Find winner (first to reach the end)
-    const winnerIndex = positions.indexOf(Math.max(...positions));
-
+    
     // Mark winner
-    const winnerHorse = document.querySelector(`#horse-${winnerIndex + 1}`);
+    const winnerHorse = document.querySelector(`#horse-${targetWinnerIndex + 1}`);
     winnerHorse.classList.add('winner');
-
-    return winnerIndex + 1;
+    
+    return targetWinnerIndex + 1;
 }
 
 // Check race result
