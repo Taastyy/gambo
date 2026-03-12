@@ -3,292 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roulette - Das Klassische Casinospiel</title>
+    <title>Roulette - Premium Casino</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="roulette.css">
 </head>
 <body>
-    <div class="game-container">
-        <!-- Navigation -->
-        <nav class="game-nav">
-            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
-        </nav>
-
-        <!-- Header mit Spieltitel und Kontostand -->
-        <header class="game-header">
-            <h1>🎰 Roulette</h1>
-            <div class="score-panel">
-                <div class="score-item">
-                    <span class="score-label">Balance</span>
-                    <span id="balance" class="score-value">1000</span>
+    <div class="app-container">
+        <!-- Top Bar -->
+        <header class="top-nav">
+            <a href="index.html" class="nav-btn">← Menü</a>
+            <button id="btn-stats" class="nav-btn">📊 Statistik</button>
+            <div class="brand">Roulette</div>
+            <div class="stats-panel">
+                <div class="stat-pill">
+                    <span class="stat-label">Balance</span>
+                    <span class="stat-value gold balance-display" id="balance">0</span>
                 </div>
-                <div class="score-item">
-                    <span class="score-label">Einsatz</span>
-                    <span id="current-bet" class="score-value">100</span>
-                </div>
-                <div class="score-item">
-                    <span class="score-label">Gewinne</span>
-                    <span id="total-wins" class="score-value">0</span>
-                </div>
-                <div class="score-item">
-                    <span class="score-label">Spiele</span>
-                    <span id="total-games" class="score-value">0</span>
+                <div class="stat-pill">
+                    <span class="stat-label">Einsatz</span>
+                    <span class="stat-value" id="current-bet">0</span>
                 </div>
             </div>
         </header>
 
-        <!-- Haupt-Spielbereich -->
-        <main class="game-table">
-            <!-- Roulette-Rad Anzeige -->
-            <div class="wheel-section">
-                <div id="roulette-wheel" class="roulette-wheel">
-                    <canvas id="wheel-canvas" width="320" height="320"></canvas>
-                    <div id="wheel-overlay" class="wheel-overlay"></div>
-                    <div id="roulette-ball" class="roulette-ball"></div>
-                    <div id="wheel-pointer" class="wheel-pointer">
-                        <div class="pointer-inner"></div>
-                    </div>
-                </div>
-                <div id="winning-number-display" class="winning-number-display">
-                    <div class="winning-number-circle" id="winning-circle"></div>
-                    <span id="winning-text"></span>
-                </div>
-            </div>
-
-            <!-- Nachrichtenanzeige -->
-            <div id="game-message" class="game-message"></div>
-
-            <!-- Aktuelle Einsätze Anzeige -->
-            <div id="current-bets-display" class="current-bets-display">
-                <span class="bets-label">Aktuelle Einsätze:</span>
-                <span id="total-bet-amount">0</span>
-            </div>
-
-            <!-- Your bets Anzeige -->
-            <div id="your-bets-display" class="your-bets-display">
-                <div class="your-bets-title">Deine Einsätze:</div>
-                <div id="your-bets-list" class="your-bets-list"></div>
-            </div>
-
-            <!-- Spieler Bereich mit Wetten -->
-            <section class="betting-area">
-                <!-- Einsatz-Steuerung -->
-                <div class="bet-controls">
-                    <div class="quick-bets">
-                        <button class="bet-btn quick-bet" onclick="addBet(10)">10</button>
-                        <button class="bet-btn quick-bet" onclick="addBet(25)">25</button>
-                        <button class="bet-btn quick-bet" onclick="addBet(50)">50</button>
-                        <button class="bet-btn quick-bet" onclick="addBet(100)">100</button>
-                        <button class="bet-btn quick-bet" onclick="addBet(250)">250</button>
-                        <button class="bet-btn quick-bet" onclick="addBet(500)">500</button>
-                    </div>
-                    <div class="bet-adjustment">
-                        <button class="bet-btn adjust-btn" onclick="changeBet(-10)">-10</button>
-                        <button class="bet-btn adjust-btn" onclick="changeBet(-25)">-25</button>
-                        <input type="number" id="bet-input" class="bet-input" min="10" max="500" value="100" onchange="setCustomBet(this.value)">
-                        <button class="bet-btn adjust-btn" onclick="changeBet(25)">+25</button>
-                        <button class="bet-btn adjust-btn" onclick="changeBet(10)">+10</button>
-                        <button class="bet-btn action-btn all-in" onclick="setAllIn()">ALL IN</button>
-                    </div>
-                    <div class="bet-actions">
-                        <button class="bet-btn action-btn" onclick="halfBet()">½</button>
-                        <button class="bet-btn action-btn" onclick="doubleBet()">×2</button>
-                        <button class="bet-btn action-btn clear-btn" onclick="clearAllBets()">LÖSCHEN</button>
-                    </div>
-                </div>
-
-                <!-- Roulette Tisch -->
-                <div class="roulette-table-container">
-                    <!-- Null -->
-                    <div class="zero-cell" onclick="placeBet('straight', 0)">0</div>
-                    
-                    <!-- Haupt-Tisch -->
-                    <div class="roulette-main-table">
-                        <!-- Dutzend -->
-                        <div class="dozen-row">
-                            <div class="dozen-cell" onclick="placeBet('dozen', 1)">1st 12</div>
-                            <div class="dozen-cell" onclick="placeBet('dozen', 2)">2nd 12</div>
-                            <div class="dozen-cell" onclick="placeBet('dozen', 3)">3rd 12</div>
-                        </div>
-                        
-                        <!-- Zahlen 1-36 -->
-                        <div class="numbers-table">
-                            <!-- Column bets -->
-                            <div class="column-bets">
-                                <div class="column-cell" onclick="placeBet('column', 1)">2:1</div>
-                                <div class="column-cell" onclick="placeBet('column', 2)">2:1</div>
-                                <div class="column-cell" onclick="placeBet('column', 3)">2:1</div>
-                            </div>
-                            
-                            <!-- Numbers -->
-                            <div class="numbers-area" id="numbers-area"></div>
-                            
-                            <!-- Even money bets -->
-                            <div class="even-money-bets">
-                                <div class="even-cell red-cell" onclick="placeBet('red')">Rot</div>
-                                <div class="even-cell black-cell" onclick="placeBet('black')">Schwarz</div>
-                                <div class="even-cell" onclick="placeBet('even')">Gerade</div>
-                                <div class="even-cell" onclick="placeBet('odd')">Ungerade</div>
-                            </div>
-                            <div class="even-money-bets second">
-                                <div class="even-cell" onclick="placeBet('low')">1-18</div>
-                                <div class="even-cell" onclick="placeBet('high')">19-36</div>
-                            </div>
+        <!-- Main Layout -->
+        <main class="game-area">
+            <!-- Left Panel: Wheel & History -->
+            <section class="wheel-panel">
+                <div class="wheel-stage">
+                    <div class="wheel-container" id="wheel-container">
+                        <canvas id="wheel-canvas" width="320" height="320"></canvas>
+                        <div class="wheel-pointer"></div>
+                        <div class="ball" id="ball"></div>
+                        <div class="wheel-center">
+                            <span id="winning-number" class="winning-display">?</span>
                         </div>
                     </div>
-                    
-                    <!-- Spezialwetten Buttons -->
-                    <div class="special-bets">
-                        <button class="special-bet-btn" onclick="placeBet('street', 1)">Street 1-3</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 4)">Street 4-6</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 7)">Street 7-9</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 10)">Street 10-12</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 13)">Street 13-15</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 16)">Street 16-18</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 19)">Street 19-21</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 22)">Street 22-24</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 25)">Street 25-27</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 28)">Street 28-30</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 31)">Street 31-33</button>
-                        <button class="special-bet-btn" onclick="placeBet('street', 34)">Street 34-36</button>
-                        <button class="special-bet-btn corner-btn" onclick="placeBet('corner', 1)">Corner 1-5</button>
-                        <button class="special-bet-btn corner-btn" onclick="placeBet('corner', 2)">Corner 2-6</button>
-                        <button class="special-bet-btn corner-btn" onclick="placeBet('corner', 5)">Corner 5-9</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 1)">Line 1-6</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 7)">Line 7-12</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 13)">Line 13-18</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 19)">Line 19-24</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 25)">Line 25-30</button>
-                        <button class="special-bet-btn line-btn" onclick="placeBet('line', 31)">Line 31-36</button>
-                    </div>
                 </div>
+
+                <div class="history-container">
+                    <div class="history-title">Letzte Zahlen</div>
+                    <div class="history-list" id="history-list"></div>
+                </div>
+                
+                <div class="toast-message" id="toast-message">Platziere deinen Einsatz!</div>
             </section>
 
-            <!-- Aktionsbuttons -->
-            <section class="action-buttons">
-                <button id="spin-btn" class="btn btn-primary" onclick="spinWheel()">🎰 Drehen</button>
-                <button id="clear-btn" class="btn btn-secondary" onclick="clearAllBets()">Alle löschen</button>
-                <button id="repeat-btn" class="btn btn-info" onclick="repeatLastBet()">Wiederholen</button>
+            <!-- Right Panel: Board & Controls -->
+            <section class="board-panel">
+                <div class="board-wrapper">
+                    <div class="roulette-board" id="roulette-board">
+                        <div class="zero-zone">
+                            <div class="board-cell num-0 green-cell" data-bet="num-0">0</div>
+                        </div>
+                        <div class="main-grid-wrapper">
+                            <div class="number-row top-row" id="row-3"></div>
+                            <div class="number-row mid-row" id="row-2"></div>
+                            <div class="number-row bot-row" id="row-1"></div>
+                        </div>
+                        <div class="col-zone">
+                            <div class="board-cell col-bet" data-bet="col-3">2:1</div>
+                            <div class="board-cell col-bet" data-bet="col-2">2:1</div>
+                            <div class="board-cell col-bet" data-bet="col-1">2:1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dozens-row">
+                        <div class="board-cell empty-left"></div>
+                        <div class="board-cell dozen-bet" data-bet="dozen-1">1st 12</div>
+                        <div class="board-cell dozen-bet" data-bet="dozen-2">2nd 12</div>
+                        <div class="board-cell dozen-bet" data-bet="dozen-3">3rd 12</div>
+                        <div class="board-cell empty-right"></div>
+                    </div>
+
+                    <div class="outside-row">
+                        <div class="board-cell empty-left"></div>
+                        <div class="board-cell outside-bet" data-bet="low">1-18</div>
+                        <div class="board-cell outside-bet" data-bet="even">EVEN</div>
+                        <div class="board-cell outside-bet red-cell" data-bet="red">ROT</div>
+                        <div class="board-cell outside-bet black-cell" data-bet="black">SCHWARZ</div>
+                        <div class="board-cell outside-bet" data-bet="odd">ODD</div>
+                        <div class="board-cell outside-bet" data-bet="high">19-36</div>
+                        <div class="board-cell empty-right"></div>
+                    </div>
+                </div>
+
+                <div class="controls-panel">
+                    <div class="chips-selector" id="chips-selector">
+                        <button class="chip-btn" data-value="1">1</button>
+                        <button class="chip-btn" data-value="5">5</button>
+                        <button class="chip-btn active" data-value="10">10</button>
+                        <button class="chip-btn" data-value="25">25</button>
+                        <button class="chip-btn" data-value="100">100</button>
+                        <button class="chip-btn" data-value="500">500</button>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="action-btn secondary" id="btn-clear" title="Alle löschen">✕</button>
+                        <button class="action-btn secondary" id="btn-undo" title="Rückgängig">↩</button>
+                        <button class="action-btn primary" id="btn-spin">SPIN</button>
+                    </div>
+                </div>
             </section>
         </main>
+    </div>
 
-        <!-- Spielregeln -->
-        <aside class="rules-panel">
-            <h3>🎰 Regeln</h3>
-            <div class="rules-content">
-                <div class="rule-item">
-                    <span class="rule-name">Straight (1 Zahl)</span>
-                    <span class="rule-payout">35:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Split (2 Zahlen)</span>
-                    <span class="rule-payout">17:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Street (3 Zahlen)</span>
-                    <span class="rule-payout">11:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Corner (4 Zahlen)</span>
-                    <span class="rule-payout">8:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Line (6 Zahlen)</span>
-                    <span class="rule-payout">5:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Dutzend / Kolonne</span>
-                    <span class="rule-payout">2:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Rot/Schwarz</span>
-                    <span class="rule-payout">1:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">Gerade/Ungerade</span>
-                    <span class="rule-payout">1:1</span>
-                </div>
-                <div class="rule-item">
-                    <span class="rule-name">1-18 / 19-36</span>
-                    <span class="rule-payout">1:1</span>
-                </div>
-                <div class="rule-note">
-                    ⚠️ Die grüne 0 gewinnt für die Bank
-                </div>
+    <!-- Statistics Modal -->
+    <div id="stats-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>📊 Statistik</h2>
+                <button id="close-stats-btn" class="close-btn">&times;</button>
             </div>
-        </aside>
-
-        <!-- Spielhistorie -->
-        <section class="game-history">
-            <h3>Spielhistorie <button class="stats-btn" onclick="showStatsModal()">📊 Statistik</button></h3>
-            <ul id="history-list"></ul>
-        </section>
-
-        <!-- Statistik Modal -->
-        <div id="stats-modal-overlay" class="modal-overlay">
-            <div id="stats-modal" class="stats-modal">
-                <div class="stats-modal-header">
-                    <h2>📊 Ihre Statistik</h2>
-                    <button id="close-stats-modal" class="close-modal">&times;</button>
+            <div class="modal-body">
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-box-label">Spiele</div>
+                        <div class="stat-box-value" id="stat-games">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">Gewonnen</div>
+                        <div class="stat-box-value gold" id="stat-won-amount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">Verloren</div>
+                        <div class="stat-box-value red" id="stat-lost-amount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-box-label">Profit</div>
+                        <div class="stat-box-value" id="stat-profit">0</div>
+                    </div>
                 </div>
-                <div class="stats-modal-body">
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-label">Spiele Gespielt</span>
-                            <span id="stats-total-games" class="stat-value">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Gewonnene Spiele</span>
-                            <span id="stats-wins" class="stat-value win">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Verlorene Spiele</span>
-                            <span id="stats-losses" class="stat-value lose">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Höchster Gewinn</span>
-                            <span id="stats-highest-win" class="stat-value">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Gesamt Gewonnen</span>
-                            <span id="stats-total-winnings" class="stat-value win">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Gesamt Verloren</span>
-                            <span id="stats-total-losses" class="stat-value lose">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Aktuelle Balance</span>
-                            <span id="stats-balance" class="stat-value">1000</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Profit</span>
-                            <span id="stats-profit" class="stat-value">0</span>
-                        </div>
-                    </div>
-                    <div class="stats-actions">
-                        <button id="reset-stats-btn" class="btn btn-danger">Statistik Zurücksetzen</button>
-                    </div>
+                <div class="modal-actions">
+                    <button class="action-btn secondary" id="btn-reset-balance">Balance & Stats Zurücksetzen</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="balance.js"></script>
-    <script>
-        // Sync balance after a short delay to ensure DOM is ready
-        setTimeout(function() {
-            if (typeof syncBalance === 'function') {
-                syncBalance();
-            }
-            if (typeof getBalanceSync === 'function') {
-                var balanceEl = document.getElementById('balance');
-                var statsBalanceEl = document.getElementById('stats-balance');
-                var balance = getBalanceSync();
-                if (balanceEl) balanceEl.textContent = Math.round(balance);
-                if (statsBalanceEl) statsBalanceEl.textContent = Math.round(balance);
-            }
-        }, 50);
-    </script>
     <script src="roulette.js"></script>
 </body>
 </html>
