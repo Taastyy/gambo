@@ -1,780 +1,461 @@
 /**
- * ==========================================================================
- * Mines Game JavaScript
- * 
- * A Minesweeper-style gambling game with the following features:
- * - 5x5 grid with configurable mine count (3-15 mines)
- * - Progressive multipliers based on safe tiles revealed
- * - Cash out functionality
- * - Balance and statistics tracking
- * - Game history
- * 
- * Multiplier formula: (remainingSafeTiles / remainingTotalTiles) ^ -0.5
- * This creates increasing multipliers as more safe tiles are revealed.
- * 
- * @author Mines Game
- * @version 1.0.0
- * @date 2026
- * ==========================================================================
+ * Mines Game JavaScript - Premium Edition
  */
 
-
-// ==========================================================================
-// GLOBAL VARIABLES AND CONSTANTS
-// ==========================================================================
-
-/**
- * Grid configuration
- */
 const GRID_SIZE = 5;
-const TOTAL_TILES = GRID_SIZE * GRID_SIZE;
+const TOTAL_TILES = 25;
+const CUSTOM_MULTIPLIER_CACHE = {};
 
-/**
- * Default mine counts available in the dropdown
- */
-const MINE_COUNTS = [3, 5, 10, 15];
-
-/**
- * Game state constants
- */
 const GAME_STATE = {
-    WAITING: 'waiting',       // Waiting to start new game
-    PLAYING: 'playing',       // Player is revealing tiles
-    GAME_OVER: 'game_over'    // Game ended (win or lose)
+    WAITING: 'waiting',
+    PLAYING: 'playing',
+    GAME_OVER: 'game_over'
 };
 
-/**
- * Multiplier cache for common mine counts
- */
-const MULTIPLIER_CACHE = {};
-
-// ==========================================================================
-// GAME STATE
-// ==========================================================================
-
 let gameState = {
-    currentBet: 100,              // Current bet amount
-    minesCount: 5,                // Number of mines in current game
-    revealedTiles: [],            // Array of revealed tile indices
-    mineIndices: [],              // Array of mine positions
-    state: GAME_STATE.WAITING,    // Current game state
-    currentMultiplier: 1.0,       // Current multiplier
-    potentialWin: 100,            // Potential win amount
-    probabilityEnabled: false,    // Show probability indicators
+    currentBet: 100,
+    minesCount: 5,
+    revealedTiles: [],
+    mineIndices: [],
+    state: GAME_STATE.WAITING,
+    currentMultiplier: 1.0,
+    potentialWin: 100,
+    hintsUsed: false,
     
-    // Statistics
+    // Stats
     gamesPlayed: 0,
     wins: 0,
     losses: 0,
-    highestWin: 0,
-    totalWinnings: 0,
-    totalLosses: 0
+    highestWin: 0
 };
 
-// ==========================================================================
-// DOM ELEMENTS
-// ==========================================================================
+// DOM
+let balanceEl, currentBetDisplayEl, betInputEl, minesCountSelect;
+let currentMultiplierEl, potentialWinEl, gameMessageEl, minesGridEl;
+let mainActionBtn, hintBtn, historyListEl, statsModalOverlay;
 
-let balanceEl, currentBetEl, potentialWinEl, currentMultiplierEl;
-let gameMessageEl, minesGridEl, cashOutBtn, newGameBtn;
-let historyListEl, statsModal, statsModalOverlay;
-let minesCountSelect, betInputEl;
-let probabilityToggle;
-
-// ==========================================================================
-// INITIALIZATION
-// ==========================================================================
-
-/**
- * Initializes the game when the DOM is fully loaded.
- */
-document.addEventListener('DOMContentLoaded', function() {
-    initializeElements();
-    initializeEventListeners();
-    initializeStatsModal();
-    initializeMultiplierCache();
+document.addEventListener('DOMContentLoaded', () => {
+    initDOM();
+    initMultipliers();
     createGrid();
     loadStats();
-    syncBalance(); // Sync balance display with localStorage
-    updateUI();
-    showMessage('Willkommen! Wählen Sie den Einsatz und klicken Sie auf "Neues Spiel"', '');
+    
+    // Sync external balance
+    setTimeout(() => {
+        if(typeof syncBalance === 'function') syncBalance();
+        if(typeof getBalanceSync === 'function') {
+            const bal = getBalanceSync();
+            if(balanceEl) balanceEl.textContent = bal.toFixed(2);
+        }
+        updateUI();
+    }, 50);
 });
 
-/**
- * References all required DOM elements for easy access.
- */
-function initializeElements() {
+function initDOM() {
     balanceEl = document.getElementById('balance');
-    currentBetEl = document.getElementById('current-bet');
-    potentialWinEl = document.getElementById('potential-win-amount');
+    currentBetDisplayEl = document.getElementById('current-bet-display');
+    betInputEl = document.getElementById('bet-input');
+    minesCountSelect = document.getElementById('mines-count');
     currentMultiplierEl = document.getElementById('current-multiplier');
+    potentialWinEl = document.getElementById('potential-win-amount');
     gameMessageEl = document.getElementById('game-message');
     minesGridEl = document.getElementById('mines-grid');
-    cashOutBtn = document.getElementById('cash-out-btn');
-    newGameBtn = document.getElementById('new-game-btn');
+    mainActionBtn = document.getElementById('main-action-btn');
+    hintBtn = document.getElementById('hint-btn');
     historyListEl = document.getElementById('history-list');
-    minesCountSelect = document.getElementById('mines-count');
-    betInputEl = document.getElementById('bet-input');
-    probabilityToggle = document.getElementById('probability-toggle');
-}
+    statsModalOverlay = document.getElementById('stats-modal-overlay');
 
-/**
- * Initializes all event listeners.
- */
-function initializeEventListeners() {
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        switch(e.key.toLowerCase()) {
-            case 'n':
-                if (gameState.state === GAME_STATE.WAITING) {
-                    startNewGame();
-                }
-                break;
-            case 'c':
-                if (gameState.state === GAME_STATE.PLAYING) {
-                    cashOut();
-                }
-                break;
+    minesCountSelect.addEventListener('change', (e) => {
+        if(gameState.state === GAME_STATE.WAITING) {
+            gameState.minesCount = parseInt(e.target.value);
+            updatePotentialWin();
         }
     });
 
-    // Mine count change
-    minesCountSelect.addEventListener('change', function() {
-        if (gameState.state === GAME_STATE.WAITING) {
-            gameState.minesCount = parseInt(this.value);
+    document.addEventListener('keydown', (e) => {
+        if(e.code === 'Space') {
+            e.preventDefault();
+            handleMainAction();
         }
     });
-
-    // Bet input change
-    betInputEl.addEventListener('change', function() {
-        setCustomBet(this.value);
-    });
-    
-    // Probability toggle
-    if (probabilityToggle) {
-        probabilityToggle.addEventListener('change', function() {
-            gameState.probabilityEnabled = this.checked;
-            updateProbabilityDisplay();
-            saveStats();
-        });
-    }
 }
 
-/**
- * Pre-calculates multipliers for better performance.
- */
-function initializeMultiplierCache() {
-    MINE_COUNTS.forEach(mines => {
-        MULTIPLIER_CACHE[mines] = {};
+function initMultipliers() {
+    [3, 5, 10, 15, 20].forEach(mines => {
+        CUSTOM_MULTIPLIER_CACHE[mines] = {};
         const totalSafe = TOTAL_TILES - mines;
         
-        for (let revealed = 0; revealed <= totalSafe; revealed++) {
-            const remainingSafe = totalSafe - revealed;
-            const remainingTotal = TOTAL_TILES - revealed;
-            
-            if (remainingSafe > 0 && remainingTotal > 0) {
-                const multiplier = Math.pow(remainingSafe / remainingTotal, -0.5);
-                MULTIPLIER_CACHE[mines][revealed] = Math.round(multiplier * 100) / 100;
-            } else if (remainingSafe === 0) {
-                MULTIPLIER_CACHE[mines][revealed] = 100; // Very high for clearing all
-            }
+        let currentMult = 1.0;
+        for (let r = 1; r <= totalSafe; r++) {
+            // Standard House Edge multiplier approx
+            const remainingSafe = totalSafe - (r - 1);
+            const remainingTotal = TOTAL_TILES - (r - 1);
+            const prob = remainingSafe / remainingTotal;
+            currentMult = currentMult * (1 / prob) * 0.99; // 1% house edge
+            CUSTOM_MULTIPLIER_CACHE[mines][r] = Math.round(currentMult * 100) / 100;
         }
     });
 }
 
-/**
- * Calculates the probability of a tile being safe.
- * 
- * @param {number} tileIndex - The tile index to check
- * @returns {number} Probability (0-1) that the tile is safe
- */
-function calculateTileProbability(tileIndex) {
-    if (gameState.revealedTiles.includes(tileIndex)) {
-        return 1; // Already revealed, safe
-    }
-    
-    const revealed = gameState.revealedTiles.length;
-    const totalRemaining = TOTAL_TILES - revealed;
-    const minesRemaining = gameState.minesCount;
-    
-    // Simple probability: (Total remaining - Mines remaining) / Total remaining
-    // This gives the probability for any unrevealed tile
-    const probability = (totalRemaining - minesRemaining) / totalRemaining;
-    
-    return Math.max(0, Math.min(1, probability));
-}
-
-/**
- * Gets the probability level for display.
- * 
- * @param {number} probability - The probability value (0-1)
- * @returns {string} The probability level: 'extreme', 'high', 'medium', 'low', 'danger'
- */
-function getProbabilityLevel(probability) {
-    if (probability >= 0.9) return 'extreme';  // 90%+ - Starker grüner Glow
-    if (probability >= 0.75) return 'high';    // 75-90% - Grüner Glow
-    if (probability >= 0.5) return 'medium';   // 50-75% - Gelb
-    if (probability >= 0.35) return 'low';     // 35-50% - Orange
-    return 'danger';                           // <35% - Rot
-}
-
-/**
- * Updates the probability display on all unrevealed tiles.
- */
-function updateProbabilityDisplay() {
-    if (!gameState.probabilityEnabled || gameState.state !== GAME_STATE.PLAYING) {
-        // Clear probability displays
-        const tiles = minesGridEl.querySelectorAll('.mine-tile');
-        tiles.forEach(tile => {
-            tile.classList.remove('prob-extreme', 'prob-high', 'prob-medium', 'prob-low', 'prob-danger');
-            const probDisplay = tile.querySelector('.probability-display');
-            if (probDisplay) {
-                probDisplay.remove();
-            }
-        });
-        return;
-    }
-    
-    const tiles = minesGridEl.querySelectorAll('.mine-tile');
-    
-    tiles.forEach((tile, index) => {
-        if (gameState.revealedTiles.includes(index)) return;
-        
-        const probability = calculateTileProbability(index);
-        const level = getProbabilityLevel(probability);
-        
-        // Remove existing probability display
-        const existingProb = tile.querySelector('.probability-display');
-        if (existingProb) {
-            existingProb.remove();
-        }
-        
-        // Update tile class for glow effect (no percentage text)
-        tile.classList.remove('prob-extreme', 'prob-high', 'prob-medium', 'prob-low', 'prob-danger');
-        tile.classList.add(`prob-${level}`);
-    });
-}
-
-/**
- * Creates the 5x5 grid of tiles.
- */
 function createGrid() {
     minesGridEl.innerHTML = '';
-    
+    minesGridEl.className = 'mines-grid'; 
     for (let i = 0; i < TOTAL_TILES; i++) {
         const tile = document.createElement('div');
-        tile.className = 'mine-tile hidden';
-        tile.dataset.index = i;
+        tile.className = 'mine-tile';
         tile.onclick = () => revealTile(i);
         minesGridEl.appendChild(tile);
     }
 }
 
-// ==========================================================================
-// BETTING FUNCTIONS
-// ==========================================================================
-
-/**
- * Changes the current bet by the specified amount.
- */
-function changeBet(amount) {
-    if (gameState.state !== GAME_STATE.WAITING) return;
-    
-    const newBet = gameState.currentBet + amount;
-    
-    if (newBet >= 1) {
-        gameState.currentBet = newBet;
-        updateBetDisplay();
-    }
-}
-
-/**
- * Sets a custom bet from the input field.
- */
-function setCustomBet(value) {
-    if (gameState.state !== GAME_STATE.WAITING) return;
-    
-    const amount = parseInt(value) || 1;
-    gameState.currentBet = Math.max(1, amount);
+// Betting Actions
+function setCustomBet(val) {
+    if(gameState.state !== GAME_STATE.WAITING) return;
+    let bet = parseInt(val);
+    if(isNaN(bet) || bet < 1) bet = 1;
+    gameState.currentBet = bet;
     updateBetDisplay();
 }
 
-/**
- * Sets the bet to half of the player's balance.
- */
+function changeBet(amt) {
+    if(gameState.state !== GAME_STATE.WAITING) return;
+    gameState.currentBet = Math.max(1, gameState.currentBet + amt);
+    updateBetDisplay();
+}
+
 function halfBet() {
-    if (gameState.state !== GAME_STATE.WAITING) return;
-    
-    const currentBalance = getBalanceSync();
-    const halfBalance = Math.floor(currentBalance / 2);
-    gameState.currentBet = Math.max(1, halfBalance);
+    if(gameState.state !== GAME_STATE.WAITING) return;
+    gameState.currentBet = Math.max(1, Math.floor(gameState.currentBet / 2));
     updateBetDisplay();
 }
 
-/**
- * Doubles the current bet.
- */
 function doubleBet() {
-    if (gameState.state !== GAME_STATE.WAITING) return;
-    
+    if(gameState.state !== GAME_STATE.WAITING) return;
     gameState.currentBet = gameState.currentBet * 2;
-    gameState.currentBet = Math.max(gameState.currentBet, 1);
     updateBetDisplay();
 }
 
-/**
- * Sets the bet to the player's entire balance.
- */
 function setAllIn() {
-    if (gameState.state !== GAME_STATE.WAITING) return;
-    
-    const currentBalance = getBalanceSync();
-    gameState.currentBet = currentBalance;
+    if(gameState.state !== GAME_STATE.WAITING) return;
+    if(typeof getBalanceSync === 'function') {
+        gameState.currentBet = Math.floor(getBalanceSync());
+    }
     updateBetDisplay();
 }
 
-/**
- * Updates the bet display.
- */
 function updateBetDisplay() {
-    if (betInputEl) {
-        betInputEl.value = gameState.currentBet;
-    }
-    currentBetEl.textContent = gameState.currentBet;
+    betInputEl.value = gameState.currentBet;
+    currentBetDisplayEl.textContent = `€${gameState.currentBet.toFixed(2)}`;
     updatePotentialWin();
 }
 
-// ==========================================================================
-// GAME LOGIC
-// ==========================================================================
+// Game Flow
+function handleMainAction() {
+    if(gameState.state === GAME_STATE.WAITING || gameState.state === GAME_STATE.GAME_OVER) {
+        startGame();
+    } else if(gameState.state === GAME_STATE.PLAYING) {
+        if(gameState.revealedTiles.length > 0) {
+            cashOut();
+        }
+    }
+}
 
-/**
- * Starts a new game with the current bet and mine count.
- */
-function startNewGame() {
-    if (gameState.state !== GAME_STATE.WAITING && gameState.state !== GAME_STATE.GAME_OVER) {
-        return;
+function startGame() {
+    if(typeof getBalanceSync === 'function') {
+        if(getBalanceSync() < gameState.currentBet) {
+            showMsg('Nicht genügend Guthaben!', 'danger');
+            return;
+        }
+        if(typeof deductFromBalance === 'function') deductFromBalance(gameState.currentBet);
     }
-    
-    if (getBalanceSync() < gameState.currentBet) {
-        showMessage('Nicht genügend Guthaben!', 'lose');
-        return;
-    }
-    
-    // Deduct bet
-    deductFromBalance(gameState.currentBet);
-    
-    // Reset game state
+
+    gameState.state = GAME_STATE.PLAYING;
     gameState.minesCount = parseInt(minesCountSelect.value);
     gameState.revealedTiles = [];
-    gameState.state = GAME_STATE.PLAYING;
     gameState.currentMultiplier = 1.0;
     gameState.potentialWin = gameState.currentBet;
+    gameState.hintsUsed = false;
     
-    // Generate mine positions
     generateMines();
     
-    // Reset grid
-    resetGrid();
-    
-    // Update UI
-    updateUI();
-    updateProbabilityDisplay();
-    showMessage('Viel Glück! Klicken Sie auf ein Feld.', '');
-    
-    // Enable/disable buttons
-    newGameBtn.disabled = true;
-    cashOutBtn.disabled = false;
-}
-
-/**
- * Generates random mine positions.
- */
-function generateMines() {
-    const indices = [];
-    while (indices.length < gameState.minesCount) {
-        const randomIndex = Math.floor(Math.random() * TOTAL_TILES);
-        if (!indices.includes(randomIndex)) {
-            indices.push(randomIndex);
-        }
-    }
-    gameState.mineIndices = indices;
-}
-
-/**
- * Resets the grid to initial state.
- */
-function resetGrid() {
+    // Visual reset
+    minesGridEl.classList.add('is-playing');
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
-    tiles.forEach(tile => {
-        tile.className = 'mine-tile hidden';
-        tile.innerHTML = '';
+    tiles.forEach(t => {
+        t.className = 'mine-tile';
+        t.innerHTML = '';
     });
+    
+    updateUI();
+    showMsg('Spiel gestartet. Viel Glück!');
 }
 
-/**
- * Reveals a tile at the given index.
- */
+function generateMines() {
+    gameState.mineIndices = [];
+    while(gameState.mineIndices.length < gameState.minesCount) {
+        let r = Math.floor(Math.random() * TOTAL_TILES);
+        if(!gameState.mineIndices.includes(r)) gameState.mineIndices.push(r);
+    }
+}
+
 function revealTile(index) {
-    if (gameState.state !== GAME_STATE.PLAYING) return;
-    if (gameState.revealedTiles.includes(index)) return;
-    
+    if(gameState.state !== GAME_STATE.PLAYING) return;
+    if(gameState.revealedTiles.includes(index)) return;
+
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
     const tile = tiles[index];
-    
-    // Check if it's a mine
-    if (gameState.mineIndices.includes(index)) {
-        // Game over - hit a mine
-        tile.className = 'mine-tile mine';
+
+    // Remove hint text if present
+    const hintText = tile.querySelector('.hint-text');
+    if(hintText) hintText.remove();
+
+    if(gameState.mineIndices.includes(index)) {
+        // Boom
+        tile.classList.add('revealed', 'mine');
+        tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
         endGame(false);
-        return;
-    }
-    
-    // Safe tile
-    gameState.revealedTiles.push(index);
-    tile.className = 'mine-tile safe';
-    
-    // Calculate new multiplier
-    updateMultiplier();
-    updateUI();
-    updateProbabilityDisplay();
-    
-    // Check if all safe tiles revealed (win)
-    const totalSafe = TOTAL_TILES - gameState.minesCount;
-    if (gameState.revealedTiles.length === totalSafe) {
-        endGame(true);
-        return;
-    }
-    
-    // Check if can continue
-    getBalance().then((balance) => {
-        if (balance <= 0 && gameState.revealedTiles.length < totalSafe) {
-            showMessage('Kein Guthaben mehr! Spiel vorbei.', 'lose');
-            endGame(false);
-        }
-    });
-}
-
-/**
- * Calculates and updates the current multiplier.
- */
-function updateMultiplier() {
-    const revealed = gameState.revealedTiles.length;
-    const mines = gameState.minesCount;
-    
-    // Try to get from cache
-    if (MULTIPLIER_CACHE[mines] && MULTIPLIER_CACHE[mines][revealed] !== undefined) {
-        gameState.currentMultiplier = MULTIPLIER_CACHE[mines][revealed];
     } else {
-        // Calculate dynamically
-        const totalSafe = TOTAL_TILES - mines;
-        const remainingSafe = totalSafe - revealed;
-        const remainingTotal = TOTAL_TILES - revealed;
+        // Safe
+        gameState.revealedTiles.push(index);
+        tile.classList.add('revealed', 'safe');
+        tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
         
-        if (remainingSafe > 0 && remainingTotal > 0) {
-            gameState.currentMultiplier = Math.pow(remainingSafe / remainingTotal, -0.5);
-            gameState.currentMultiplier = Math.round(gameState.currentMultiplier * 100) / 100;
-        } else {
-            gameState.currentMultiplier = 100;
+        // Mult
+        let m = CUSTOM_MULTIPLIER_CACHE[gameState.minesCount][gameState.revealedTiles.length];
+        if(!m) m = 1.0;
+        gameState.currentMultiplier = m;
+        gameState.potentialWin = Math.floor(gameState.currentBet * m);
+        updateUI();
+
+        if(gameState.revealedTiles.length === (TOTAL_TILES - gameState.minesCount)) {
+            endGame(true, false);
         }
     }
-    
-    gameState.potentialWin = Math.round(gameState.currentBet * gameState.currentMultiplier);
 }
 
-/**
- * Updates the potential win display.
- */
-function updatePotentialWin() {
-    currentMultiplierEl.textContent = gameState.currentMultiplier.toFixed(2) + 'x';
-    potentialWinEl.textContent = gameState.potentialWin;
-}
-
-/**
- * Cash out the current winnings.
- */
 function cashOut() {
-    if (gameState.state !== GAME_STATE.PLAYING) return;
-    
+    if(gameState.state !== GAME_STATE.PLAYING) return;
     endGame(true, true);
 }
 
-/**
- * Ends the game and calculates results.
- */
 function endGame(won, cashedOut = false) {
     gameState.state = GAME_STATE.GAME_OVER;
+    minesGridEl.classList.remove('is-playing');
     
+    // Reveal everything
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
     
-    // Reveal all mines if game over
-    if (!cashedOut) {
-        gameState.mineIndices.forEach(index => {
-            if (!gameState.revealedTiles.includes(index)) {
-                tiles[index].className = 'mine-tile mine';
-            }
-        });
+    gameState.mineIndices.forEach(idx => {
+        const t = tiles[idx];
+        if(!t.classList.contains('revealed')) {
+            t.classList.add('revealed', won ? 'mine-faded' : 'mine');
+            t.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
+        }
+    });
+
+    for(let i=0; i<TOTAL_TILES; i++) {
+        if(!gameState.mineIndices.includes(i) && !gameState.revealedTiles.includes(i)) {
+            const t = tiles[i];
+            t.style.opacity = '0.4';
+        }
     }
     
-    // Calculate results
-    let profit;
-    
-    if (won) {
-        profit = gameState.potentialWin - gameState.currentBet;
-        addToBalance(gameState.potentialWin);
-        gameState.wins++;
-        gameState.totalWinnings += profit;
-        
-        if (gameState.potentialWin > gameState.highestWin) {
-            gameState.highestWin = gameState.potentialWin;
-        }
-        
-        if (cashedOut) {
-            showMessage(`Ausgecasht! +${profit}`, 'win');
-        } else {
-            showMessage(`Gewonnen! Alle sicheren Felder gefunden! +${profit}`, 'win');
-        }
-    } else {
-        profit = -gameState.currentBet;
-        gameState.losses++;
-        gameState.totalLosses += gameState.currentBet;
-        showMessage('Mine getroffen! -' + gameState.currentBet, 'lose');
-    }
-    
-    // Update statistics
     gameState.gamesPlayed++;
+    
+    if(won) {
+        if(typeof addToBalance === 'function') addToBalance(gameState.potentialWin);
+        gameState.wins++;
+        let profit = gameState.potentialWin - gameState.currentBet;
+        if(gameState.potentialWin > gameState.highestWin) gameState.highestWin = gameState.potentialWin;
+        
+        let mText = cashedOut ? `Ausgecasht! +€${profit.toFixed(2)}` : `Gewonnen! +€${profit.toFixed(2)}`;
+        showMsg(mText, 'success');
+        addHistory(true, gameState.potentialWin, gameState.currentMultiplier);
+    } else {
+        gameState.losses++;
+        showMsg(`Mine getroffen! -€${gameState.currentBet.toFixed(2)}`, 'danger');
+        addHistory(false, gameState.currentBet, 0);
+    }
+    
     saveStats();
-    
-    // Add to history
-    addToHistory(won, profit);
-    
-    // Update UI
-    gameState.currentMultiplier = 1.0;
-    gameState.potentialWin = gameState.currentBet;
     updateUI();
     
-    // Enable/disable buttons
-    newGameBtn.disabled = false;
-    cashOutBtn.disabled = true;
-    
-    // Reset for next game after delay
+    // Automatically reset display after a short time
     setTimeout(() => {
-        if (getBalanceSync() > 0) {
-            gameState.state = GAME_STATE.WAITING;
-            showMessage('Nächste Runde! Setzen Sie Ihren Einsatz.', '');
-            updateUI();
-        } else {
-            showMessage('Kein Guthaben mehr! Spiel vorbei.', 'lose');
-        }
+        gameState.potentialWin = gameState.currentBet;
+        gameState.currentMultiplier = 1.0;
+        updateUI();
     }, 2000);
 }
 
-// ==========================================================================
-// UI UPDATES
-// ==========================================================================
+// Hints 
+function showHints() {
+    if(gameState.state !== GAME_STATE.PLAYING || gameState.hintsUsed) return;
+    if(gameState.revealedTiles.length === 0) return; // Must reveal at least 1 tile first maybe? Or just allow anytime
+    
+    gameState.hintsUsed = true;
+    updateUI();
 
-/**
- * Updates the entire user interface based on the game state.
- */
+    let unrevealed = [];
+    for(let i=0; i<TOTAL_TILES; i++) {
+        if(!gameState.revealedTiles.includes(i)) unrevealed.push(i);
+    }
+    
+    let amount = Math.min(3, unrevealed.length);
+    if(amount === 0) return;
+    
+    let shuffled = unrevealed.sort(() => 0.5 - Math.random());
+    let selected = shuffled.slice(0, amount);
+    
+    const tiles = minesGridEl.querySelectorAll('.mine-tile');
+    
+    selected.forEach(idx => {
+        let isMine = gameState.mineIndices.includes(idx);
+        let t = tiles[idx];
+        
+        let pct = isMine ? (Math.floor(Math.random()*25)+75) : (Math.floor(Math.random()*25)+5);
+        
+        let span = document.createElement('span');
+        span.className = `hint-text ${pct >= 50 ? 'hint-danger' : 'hint-safe'}`;
+        span.textContent = `${pct}%`;
+        t.appendChild(span);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if(span.parentNode === t) t.removeChild(span);
+        }, 4000);
+    });
+}
+
+// UI
 function updateUI() {
-    // Update balance display using syncBalance
-    syncBalance();
+    if(typeof syncBalance === 'function') syncBalance();
+    if(typeof getBalanceSync === 'function' && balanceEl) {
+        balanceEl.textContent = getBalanceSync().toFixed(2);
+    }
     
-    currentBetEl.textContent = gameState.currentBet;
+    currentMultiplierEl.textContent = `${gameState.currentMultiplier.toFixed(2)}×`;
+    potentialWinEl.textContent = `€${gameState.potentialWin.toFixed(2)}`;
     
-    // Multiplier and potential win
-    currentMultiplierEl.textContent = gameState.currentMultiplier.toFixed(2) + 'x';
-    potentialWinEl.textContent = gameState.potentialWin;
-    
-    // Statistics display
-    document.getElementById('total-wins').textContent = gameState.wins;
-    document.getElementById('total-games').textContent = gameState.gamesPlayed;
-    
-    // Button states
-    cashOutBtn.disabled = gameState.state !== GAME_STATE.PLAYING;
-    newGameBtn.disabled = gameState.state === GAME_STATE.PLAYING;
-    
-    // Mine count select
+    betInputEl.disabled = gameState.state === GAME_STATE.PLAYING;
     minesCountSelect.disabled = gameState.state === GAME_STATE.PLAYING;
+    
+    // Main button logic
+    if(gameState.state === GAME_STATE.WAITING || gameState.state === GAME_STATE.GAME_OVER) {
+        mainActionBtn.textContent = 'Spielen';
+        mainActionBtn.className = 'btn-primary';
+        mainActionBtn.disabled = false;
+        hintBtn.disabled = true;
+    } else {
+        if(gameState.revealedTiles.length > 0) {
+            mainActionBtn.textContent = `Cash Out €${gameState.potentialWin.toFixed(2)}`;
+            mainActionBtn.className = 'btn-primary btn-cashout';
+            mainActionBtn.disabled = false;
+            hintBtn.disabled = gameState.hintsUsed;
+        } else {
+            mainActionBtn.textContent = 'Zuerst ein Feld aufdecken';
+            mainActionBtn.className = 'btn-primary';
+            mainActionBtn.disabled = true;
+            hintBtn.disabled = gameState.hintsUsed; // can hint early
+        }
+    }
+    
+    if(gameState.state !== GAME_STATE.PLAYING) {
+        mainActionBtn.disabled = false;
+    }
 }
 
-/**
- * Shows a message on the game table.
- */
-function showMessage(message, type) {
-    gameMessageEl.textContent = message;
-    gameMessageEl.className = `game-message ${type}`;
+function updatePotentialWin() {
+    if(gameState.state === GAME_STATE.WAITING) {
+        gameState.potentialWin = gameState.currentBet;
+        potentialWinEl.textContent = `€${gameState.potentialWin.toFixed(2)}`;
+    }
 }
 
-/**
- * Adds an entry to the game history.
- */
-function addToHistory(won, profit) {
-    const li = document.createElement('li');
-    li.className = won ? 'win' : 'lose';
-    li.innerHTML = `
-        <div>${won ? 'Gewinn' : 'Verlust'}</div>
-        <div style="font-size: 0.9em; color: ${profit > 0 ? '#28a745' : '#dc3545'}">
-            ${profit > 0 ? '+' : ''}${profit}
-        </div>
-    `;
-    
-    historyListEl.insertBefore(li, historyListEl.firstChild);
-    
-    // Keep maximum 10 entries
-    while (historyListEl.children.length > 10) {
+let msgTimeout;
+function showMsg(text, type='neutral') {
+    gameMessageEl.textContent = text;
+    gameMessageEl.className = `game-message ${type === 'danger' ? 'text-danger' : (type === 'success' ? 'text-success' : '')}`;
+    gameMessageEl.classList.remove('hidden');
+    clearTimeout(msgTimeout);
+    msgTimeout = setTimeout(() => {
+        gameMessageEl.classList.add('hidden');
+    }, 3000);
+}
+
+function addHistory(won, amt, mult) {
+    const el = document.createElement('div');
+    el.className = `history-item ${won?'win':'lose'}`;
+    if(won) {
+        el.innerHTML = `<span>${mult.toFixed(2)}×</span> <span class="history-val win">+€${amt.toFixed(2)}</span>`;
+    } else {
+        el.innerHTML = `<span>Bust</span> <span class="history-val lose">-€${amt.toFixed(2)}</span>`;
+    }
+    historyListEl.prepend(el);
+    if(historyListEl.children.length > 15) {
         historyListEl.removeChild(historyListEl.lastChild);
     }
 }
 
-// ==========================================================================
-// LOCAL STORAGE FUNCTIONS
-// ==========================================================================
-
-/**
- * Saves game statistics to localStorage.
- */
+// Stats & Storage
 function saveStats() {
-    const stats = {
-        currentBet: gameState.currentBet,
+    localStorage.setItem('minesPremiumStats', JSON.stringify({
         gamesPlayed: gameState.gamesPlayed,
         wins: gameState.wins,
         losses: gameState.losses,
-        highestWin: gameState.highestWin,
-        totalWinnings: gameState.totalWinnings,
-        totalLosses: gameState.totalLosses,
-        probabilityEnabled: gameState.probabilityEnabled
-    };
-    localStorage.setItem('minesStats', JSON.stringify(stats));
+        highestWin: gameState.highestWin
+    }));
 }
 
-/**
- * Loads game statistics from localStorage.
- */
 function loadStats() {
-    const savedStats = localStorage.getItem('minesStats');
-    if (savedStats) {
+    const s = localStorage.getItem('minesPremiumStats');
+    if(s) {
         try {
-            const stats = JSON.parse(savedStats);
-            gameState.currentBet = stats.currentBet || 100;
-            gameState.gamesPlayed = stats.gamesPlayed || 0;
-            gameState.wins = stats.wins || 0;
-            gameState.losses = stats.losses || 0;
-            gameState.highestWin = stats.highestWin || 0;
-            gameState.totalWinnings = stats.totalWinnings || 0;
-            gameState.totalLosses = stats.totalLosses || 0;
-            gameState.probabilityEnabled = stats.probabilityEnabled || false;
-            
-            // Update UI
-            if (probabilityToggle) {
-                probabilityToggle.checked = gameState.probabilityEnabled;
-            }
-        } catch (e) {
-            console.error('Error loading stats:', e);
-        }
+            const parsed = JSON.parse(s);
+            gameState.gamesPlayed = parsed.gamesPlayed || 0;
+            gameState.wins = parsed.wins || 0;
+            gameState.losses = parsed.losses || 0;
+            gameState.highestWin = parsed.highestWin || 0;
+        } catch(e){}
     }
 }
 
-/**
- * Resets all statistics.
- */
+function showStatsModal() {
+    document.getElementById('stats-total-games').textContent = gameState.gamesPlayed;
+    document.getElementById('stats-wins').textContent = gameState.wins;
+    document.getElementById('stats-losses').textContent = gameState.losses;
+    document.getElementById('stats-highest-win').textContent = `€${gameState.highestWin.toFixed(2)}`;
+    if(typeof getBalanceSync === 'function') {
+        const balEl = document.getElementById('stats-balance');
+        if(balEl) balEl.textContent = getBalanceSync().toFixed(2);
+    }
+    statsModalOverlay.classList.remove('hidden');
+}
+
+function closeStatsModal() {
+    statsModalOverlay.classList.add('hidden');
+}
+
 function resetStats() {
-    gameState.currentBet = 100;
     gameState.gamesPlayed = 0;
     gameState.wins = 0;
     gameState.losses = 0;
     gameState.highestWin = 0;
-    gameState.totalWinnings = 0;
-    gameState.totalLosses = 0;
-    gameState.state = GAME_STATE.WAITING;
-    
-    resetBalance(); // Reset shared balance
-    syncBalance();
+    if (typeof resetBalance === 'function') resetBalance();
     saveStats();
+    showStatsModal();
     updateUI();
-    updateStatsModal();
-    showMessage('Statistik zurückgesetzt!', '');
+    showMsg('Statistiken & Balance zurückgesetzt');
 }
 
-// ==========================================================================
-// STATS MODAL FUNCTIONS
-// ==========================================================================
-
-/**
- * Initializes the stats modal.
- */
-function initializeStatsModal() {
-    statsModal = document.getElementById('stats-modal');
-    statsModalOverlay = document.getElementById('stats-modal-overlay');
-    
-    document.getElementById('close-stats-modal').addEventListener('click', closeStatsModal);
-    document.getElementById('reset-stats-btn').addEventListener('click', resetStats);
-    
-    statsModalOverlay.addEventListener('click', function(e) {
-        if (e.target === statsModalOverlay) {
-            closeStatsModal();
-        }
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && statsModal.style.display === 'block') {
-            closeStatsModal();
-        }
-    });
-}
-
-/**
- * Shows the stats modal.
- */
-function showStatsModal() {
-    updateStatsModal();
-    statsModalOverlay.style.display = 'flex';
-    statsModal.style.display = 'block';
-}
-
-/**
- * Closes the stats modal.
- */
-function closeStatsModal() {
-    statsModalOverlay.style.display = 'none';
-    statsModal.style.display = 'none';
-}
-
-/**
- * Updates the stats in the modal.
- */
-async function updateStatsModal() {
-    // First sync balance to ensure it's up to date
-    syncBalance();
-    
-    const currentBalance = await getBalance();
-    const profit = currentBalance - 1000;
-    
-    document.getElementById('stats-total-games').textContent = gameState.gamesPlayed;
-    document.getElementById('stats-wins').textContent = gameState.wins;
-    document.getElementById('stats-losses').textContent = gameState.losses;
-    document.getElementById('stats-highest-win').textContent = gameState.highestWin;
-    document.getElementById('stats-total-winnings').textContent = gameState.totalWinnings;
-    document.getElementById('stats-total-losses').textContent = gameState.totalLosses;
-    document.getElementById('stats-balance').textContent = Math.round(currentBalance);
-    
-    const profitEl = document.getElementById('stats-profit');
-    profitEl.textContent = profit >= 0 ? `+${profit}` : profit;
-    profitEl.className = profit >= 0 ? 'stat-value positive' : 'stat-value negative';
-}
-
-// ==========================================================================
-// EXPORT FOR GLOBAL USE
-// ==========================================================================
-
-window.changeBet = changeBet;
+// Exports
 window.setCustomBet = setCustomBet;
+window.changeBet = changeBet;
 window.halfBet = halfBet;
 window.doubleBet = doubleBet;
 window.setAllIn = setAllIn;
-window.startNewGame = startNewGame;
-window.revealTile = revealTile;
-window.cashOut = cashOut;
+window.handleMainAction = handleMainAction;
+window.showHints = showHints;
 window.showStatsModal = showStatsModal;
 window.closeStatsModal = closeStatsModal;
 window.resetStats = resetStats;
