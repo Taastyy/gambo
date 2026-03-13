@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ FUSSBALL WETTEN - Die ultimative Sportwette</title>
+    <link rel="stylesheet" href="football.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="game-container">
+        <!-- Navigation -->
+        <nav class="game-nav">
+            <a href="index.html" class="nav-link menu-link">🏠 Zum Menü</a>
+        </nav>
+
+        <!-- Header -->
+        <header class="game-header">
+            <h1 class="game-title">
+                <span class="title-glow">⚽</span>
+                <span class="title-main">FUSSBALL WETTEN</span>
+                <span class="title-accent">🏟️</span>
+            </h1>
+            <div class="stats-bar">
+                <div class="stat-box balance-box">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <span class="stat-label">BALANCE</span>
+                        <span id="balance" class="stat-value balance-value">1000</span>
+                    </div>
+                </div>
+                <div class="stat-box win-box">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-info">
+                        <span class="stat-label">GEWINNE</span>
+                        <span id="total-wins" class="stat-value win-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Game Area -->
+        <main class="game-area">
+            <!-- Matches List -->
+            <div class="matches-section">
+                <div class="section-header">
+                    <h2>📅 AKTUELLE SPIELTAGE</h2>
+                    <button class="refresh-matches-btn" onclick="generateNewMatches()">🔄 Neue Spiele</button>
+                </div>
+                <div id="matches-list" class="matches-list">
+                    <!-- Matches will be injected here -->
+                </div>
+            </div>
+
+            <!-- Bet Slip (Right Side) -->
+            <aside class="bet-slip-container">
+                <div class="bet-slip">
+                    <div class="slip-header">
+                        <h3>🧾 WETTSCHEIN</h3>
+                        <span id="bet-count" class="bet-count">0</span>
+                    </div>
+                    
+                    <div id="slip-items" class="slip-items">
+                        <div class="empty-slip-msg">Wähle eine Quote aus, um eine Wette hinzuzufügen.</div>
+                    </div>
+
+                    <div class="slip-footer">
+                        <div class="total-odds">
+                            <span>Gesamtquote:</span>
+                            <span id="slip-total-odds">1.00</span>
+                        </div>
+                        
+                        <div class="bet-input-container">
+                            <label for="slip-bet-amount">Einsatz:</label>
+                            <div class="bet-input-wrapper">
+                                <input type="number" id="slip-bet-amount" class="slip-bet-input" min="1" value="100">
+                                <div class="bet-quick-actions">
+                                    <button onclick="adjustSlipBet(0.5)">½</button>
+                                    <button onclick="adjustSlipBet(2)">x2</button>
+                                    <button onclick="setSlipMaxBet()">MAX</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="potential-payout">
+                            <span>Möglicher Gewinn:</span>
+                            <span id="slip-payout">0</span>
+                        </div>
+
+                        <button id="place-bet-btn" class="place-bet-btn" onclick="placeBet()" disabled>
+                            WETTE PLATZIEREN
+                        </button>
+                    </div>
+                </div>
+
+                <div class="active-bets-section">
+                    <h3>🏃 LAUFENDE WETTEN</h3>
+                    <div id="active-bets-list" class="active-bets-list">
+                        <!-- Active bets injected here -->
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Game Simulation Modal -->
+        <div id="sim-overlay" class="modal-overlay">
+            <div class="sim-modal">
+                <div class="sim-header">
+                    <h2>⚽ SPIELSPIEGELUNG</h2>
+                    <div class="sim-timer" id="sim-timer">90'</div>
+                </div>
+                <div id="sim-matches" class="sim-matches">
+                    <!-- Simulation items injected here -->
+                </div>
+                <div class="sim-footer">
+                    <button id="close-sim-btn" class="btn btn-primary" onclick="closeSim()" style="display: none;">ERGEBNISSE ANSEHEN</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div id="stats-modal-overlay" class="modal-overlay">
+            <div id="stats-modal" class="stats-modal">
+                <div class="stats-modal-header">
+                    <h2>📊 WETT-STATISTIK</h2>
+                    <button id="close-stats-modal" class="close-modal" onclick="closeStatsModal()">&times;</button>
+                </div>
+                <div class="stats-modal-body">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🎮</div>
+                            <div class="stat-label">Wetten Platziert</div>
+                            <div id="stats-total-bets" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-card win">
+                            <div class="stat-icon">🏆</div>
+                            <div class="stat-label">Gewonnene Wetten</div>
+                            <div id="stats-wins" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-card lose">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-label">Verlorene Wetten</div>
+                            <div id="stats-losses" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-card win">
+                            <div class="stat-icon">💎</div>
+                            <div class="stat-label">Höchster Gewinn</div>
+                            <div id="stats-highest-win" class="stat-value">0</div>
+                        </div>
+                    </div>
+                    <div class="stats-history">
+                        <h3>📜 VERGANGENE WETTEN</h3>
+                        <div id="bet-history-list" class="history-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Display -->
+        <div id="game-message" class="game-message"></div>
+    </div>
+
+    <!-- Win Overlay -->
+    <div id="win-overlay" class="win-overlay">
+        <div class="win-overlay-content">
+            <div class="confetti-container" id="confetti"></div>
+            <div class="win-main">
+                <div class="win-title" id="win-title">🎉 TICKETSICHSIG! 🎉</div>
+                <div class="win-payout-label">DEIN GEWINN:</div>
+                <div class="win-amount-large" id="win-amount-large">+0</div>
+                <button class="btn btn-primary" onclick="closeWinOverlay()">ZURÜCK ZUM STADION</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="balance.js"></script>
+    <script src="football.js"></script>
+    <script>
+        // Balance sync after DOM is ready
+        setTimeout(function () {
+            if (typeof syncBalance === 'function') {
+                syncBalance();
+            }
+            if (typeof getBalanceSync === 'function') {
+                var balanceEl = document.getElementById('balance');
+                var balance = getBalanceSync();
+                if (balanceEl) balanceEl.textContent = Math.round(balance);
+            }
+        }, 50);
+    </script>
+</body>
+
+</html>

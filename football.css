@@ -1,0 +1,607 @@
+/* ==========================================================================
+   FUSSBALL WETTEN - CSS
+   ========================================================================== */
+
+:root {
+    --primary: #4caf50;
+    --primary-glow: rgba(76, 175, 80, 0.4);
+    --secondary: #2e7d32;
+    --bg-dark: #0a0e12;
+    --bg-card: #161d24;
+    --bg-input: #1f2933;
+    --text-main: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #ffd700;
+    --danger: #ef4444;
+    --win: #22c55e;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 50% 0%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+        url('https://www.transparenttextures.com/patterns/dark-matter.png');
+}
+
+.game-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* --- Navigation --- */
+.game-nav {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 20px;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-link:hover {
+    color: var(--text-main);
+    background: var(--bg-input);
+    transform: translateY(-2px);
+}
+
+/* --- Header & Stats --- */
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    background: var(--bg-card);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--card-shadow);
+}
+
+.game-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.title-glow {
+    filter: drop-shadow(0 0 10px var(--primary-glow));
+}
+
+.stats-bar {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: var(--bg-input);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.balance-value { color: var(--accent); }
+.win-value { color: var(--win); }
+
+/* --- Main Layout --- */
+.game-area {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
+}
+
+/* --- Matches Section --- */
+.matches-section {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--card-shadow);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.refresh-matches-btn {
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.refresh-matches-btn:hover {
+    background: var(--primary);
+    transform: rotate(180deg);
+}
+
+.matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.match-card {
+    background: var(--bg-input);
+    border-radius: 12px;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: var(--transition);
+}
+
+.match-card:hover {
+    border-color: var(--primary);
+    transform: scale(1.01);
+}
+
+.team {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.team.away {
+    flex-direction: row-reverse;
+}
+
+.team-flag {
+    font-size: 2rem;
+}
+
+.match-odds {
+    display: flex;
+    gap: 10px;
+}
+
+.odd-btn {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-dim);
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+    transition: var(--transition);
+}
+
+.odd-btn span:first-child {
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.odd-btn span:last-child {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-main);
+}
+
+.odd-btn:hover {
+    border-color: var(--primary);
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.odd-btn.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.odd-btn.selected span:last-child {
+    color: white;
+}
+
+/* --- Bet Slip --- */
+.bet-slip-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.bet-slip {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+}
+
+.slip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bet-count {
+    background: var(--primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.slip-items {
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.empty-slip-msg {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+.slip-item {
+    background: var(--bg-input);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    position: relative;
+    border-left: 3px solid var(--primary);
+}
+
+.slip-item-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+}
+
+.remove-item {
+    cursor: pointer;
+    color: var(--danger);
+    font-weight: bold;
+}
+
+.slip-item-match {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.slip-item-pick {
+    display: flex;
+    justify-content: space-between;
+    color: var(--primary);
+    font-weight: 700;
+    margin-top: 5px;
+}
+
+.total-odds {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: var(--accent);
+}
+
+.bet-input-container {
+    margin-bottom: 15px;
+}
+
+.bet-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slip-bet-input {
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    width: 100%;
+}
+
+.bet-quick-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.bet-quick-actions button {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-dim);
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.potential-payout {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--win);
+}
+
+.place-bet-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.place-bet-btn:hover:not(:disabled) {
+    background: #43a047;
+    box-shadow: 0 0 15px var(--primary-glow);
+    transform: translateY(-2px);
+}
+
+.place-bet-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --- Active Bets --- */
+.active-bets-section {
+    background: var(--bg-card);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.active-bets-list {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.active-bet-card {
+    background: var(--bg-input);
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.active-bet-info {
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.active-bet-matches {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+/* --- Simulation Modal --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.sim-modal {
+    background: var(--bg-card);
+    width: 600px;
+    border-radius: 30px;
+    padding: 40px;
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), 0 0 30px var(--primary-glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.sim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.sim-timer {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    color: var(--primary);
+    text-shadow: 0 0 10px var(--primary-glow);
+}
+
+.sim-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sim-match-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--bg-input);
+    border-radius: 15px;
+}
+
+.sim-score {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+/* --- Win Overlay --- */
+.win-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.win-overlay.show {
+    display: flex;
+}
+
+.win-main {
+    text-align: center;
+    z-index: 2100;
+}
+
+.win-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 4rem;
+    color: var(--accent);
+    margin-bottom: 20px;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.win-amount-large {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 5rem;
+    color: var(--win);
+    margin: 20px 0;
+}
+
+/* --- Utilities --- */
+.game-message {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 30px;
+    border-radius: 10px;
+    z-index: 1001;
+    font-weight: 700;
+    display: none;
+}
+
+.game-message.show { display: block; }
+.game-message.error { background: var(--danger); color: white; }
+.game-message.success { background: var(--win); color: white; }
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { transform: translateY(-3px); box-shadow: 0 5px 15px var(--primary-glow); }
+
+/* Confetti */
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #f2d74e;
+    top: -10px;
+    z-index: 2050;
+    animation: confetti-fall 3s linear forwards;
+}
+
+@keyframes confetti-fall {
+    0% { transform: translateY(0) rotate(0); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+}
+
+@media (max-width: 1100px) {
+    .game-area {
+        grid-template-columns: 1fr;
+    }
+}

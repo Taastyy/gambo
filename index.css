@@ -23,6 +23,7 @@
     --c-coinflip: #ffb703;
     --c-road: #ff9f1c;
     --c-stocks: #4cc9f0;
+    --c-football: #4caf50;
 }
 
 * {
@@ -273,6 +274,7 @@ body::after {
 .game-card.coinflip:hover { border-color: var(--c-coinflip); box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(255, 183, 3, 0.2); }
 .game-card.road:hover { border-color: var(--c-road); box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(255, 159, 28, 0.2); }
 .game-card.stocks:hover { border-color: var(--c-stocks); box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(76, 201, 240, 0.2); }
+.game-card.football:hover { border-color: var(--c-football); box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 20px rgba(76, 175, 80, 0.2); }
 
 
 .game-card .icon {
