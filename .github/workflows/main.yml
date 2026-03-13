@@ -1,0 +1,24 @@
+name: Deploy to Nginx Server
+
+on:
+  push:
+    branches:
+      - main  # Triggered, wenn in den 'main' Branch gepusht wird
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Copy files via SSH
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./*"  # Kopiert alle Dateien aus dem Repo
+          target: "/var/www/html/blackjack"  # Dein Nginx Ordnerpfad
+          strip_components: 1 # Optional: Verhindert, dass der Überordner mitkopiert wird
