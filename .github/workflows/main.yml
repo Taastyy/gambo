@@ -3,7 +3,7 @@ name: Deploy to Nginx Server
 on:
   push:
     branches:
-      - main  # Triggered, wenn in den 'main' Branch gepusht wird
+      - main
 
 jobs:
   deploy:
@@ -19,6 +19,14 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "./*"  # Kopiert alle Dateien aus dem Repo
-          target: "/var/www/html/blackjack"  # Dein Nginx Ordnerpfad
-          strip_components: 1 # Optional: Verhindert, dass der Überordner mitkopiert wird
+          source: "./*"
+          target: "/var/www/html/blackjack"
+
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo systemctl reload nginx
