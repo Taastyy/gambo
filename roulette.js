@@ -23,7 +23,7 @@ let stats = { games: 0, won: 0, lost: 0 };
 /* ---------- DOM ---------- */
 const canvas     = document.getElementById('wheel-canvas');
 const ctx        = canvas.getContext('2d');
-const ballEl     = document.getElementById('ball');
+
 const displayNum = document.getElementById('winning-number');
 const histList   = document.getElementById('history-list');
 const toastEl    = document.getElementById('toast-message');
@@ -319,7 +319,7 @@ function spinWheel() {
     const ballR = (canvas.width / 2) - 24;   // on the outer track
     const ballRInner = (canvas.width / 2) - 50;
 
-    ballEl.style.display = 'block';
+
     displayNum.textContent = '···';
     displayNum.style.color = 'var(--text-dim)';
 
@@ -335,22 +335,7 @@ function spinWheel() {
         const currentAngle = startAngle + (targetAngle - startAngle) * e;
         drawWheel(currentAngle);
 
-        // Ball — spins opposite, faster, then drops in
-        const ballSpins = -(targetAngle * 1.8);
-        const ballAngleDeg = ballSpins * e;
-        const ballAngleRad = (ballAngleDeg - 90) * Math.PI / 180;
 
-        // Gradually move ball inward after 75%
-        let r = ballR;
-        if (f > 0.75) {
-            const drop = (f - 0.75) / 0.25;          // 0→1
-            r = ballR - (ballR - ballRInner) * drop;
-        }
-
-        const bx = cx + Math.cos(ballAngleRad) * r;
-        const by = cy + Math.sin(ballAngleRad) * r;
-        ballEl.style.left = bx + 'px';
-        ballEl.style.top  = by + 'px';
 
         if (f < 1) {
             requestAnimationFrame(frame);
@@ -402,7 +387,7 @@ async function finishSpin(winNum) {
 
     // Reset center display after a pause
     setTimeout(() => {
-        ballEl.style.display = 'none';
+
         displayNum.textContent = '?';
         displayNum.style.color = 'var(--text)';
     }, 3500);
