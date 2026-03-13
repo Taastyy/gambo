@@ -265,8 +265,12 @@ function setSlipMaxBet() {
 }
 
 async function placeBet() {
+    if (placeBetBtnEl.disabled) return;
+    
     const amount = parseFloat(slipBetInputEl.value);
     if (!amount || amount < 10) return;
+
+    placeBetBtnEl.disabled = true;
 
     if (typeof deductFromBalance === 'function') {
         const success = await deductFromBalance(amount);
@@ -278,13 +282,15 @@ async function placeBet() {
         balance -= amount;
     }
 
-    const totalOdds = parseFloat(slipTotalOddsEl.textContent);
+    const totalOdds = betSlip.reduce((acc, item) => acc * item.odds, 1);
+    const potentialPayout = Math.floor(amount * totalOdds);
+
     const ticket = {
         id: Date.now(),
         bets: [...betSlip],
         amount,
         totalOdds,
-        potentialPayout: Math.floor(amount * totalOdds),
+        potentialPayout,
         status: 'pending'
     };
 

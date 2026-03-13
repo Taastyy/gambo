@@ -131,24 +131,40 @@
         return cachedBalance;
     }
 
+    let updateQueue = Promise.resolve();
+
+    /**
+     * Internal function to execute balance updates sequentially
+     */
+    async function queueUpdate(updateFn) {
+        updateQueue = updateQueue.then(async () => {
+            const currentBalance = getBalanceFromStorage();
+            const result = await updateFn(currentBalance);
+            if (result !== undefined) {
+                saveBalanceToStorage(result);
+                cachedBalance = result;
+                updateAllDisplays();
+                notifyListeners(result);
+            }
+        }).catch(err => {
+            console.error('Balance update failed:', err);
+        });
+        return updateQueue;
+    }
+
     /**
      * Adds an amount to the player's balance
      * @param {number} amount
      * @returns {Promise<number>} The new balance
      */
     async function addToBalance(amount) {
-        const currentBalance = getBalanceFromStorage();
-        const newBalance = currentBalance + amount;
-        
-        if (saveBalanceToStorage(newBalance)) {
-            cachedBalance = newBalance;
-            updateAllDisplays();
-            notifyListeners(newBalance);
+        let newBalance;
+        await queueUpdate((current) => {
+            newBalance = current + amount;
             console.log(`Added ${amount}. New balance: ${newBalance}`);
             return newBalance;
-        }
-        
-        return currentBalance;
+        });
+        return newBalance;
     }
 
     /**
@@ -157,22 +173,18 @@
      * @returns {Promise<boolean>} True if successful, false if insufficient balance
      */
     async function deductFromBalance(amount) {
-        const currentBalance = getBalanceFromStorage();
-        
-        if (currentBalance >= amount) {
-            const newBalance = currentBalance - amount;
-            
-            if (saveBalanceToStorage(newBalance)) {
-                cachedBalance = newBalance;
-                updateAllDisplays();
-                notifyListeners(newBalance);
+        let success = false;
+        await queueUpdate((current) => {
+            if (current >= amount) {
+                const newBalance = current - amount;
+                success = true;
                 console.log(`Deducted ${amount}. New balance: ${newBalance}`);
-                return true;
+                return newBalance;
             }
-        }
-        
-        console.warn(`Insufficient balance: ${currentBalance} < ${amount}`);
-        return false;
+            console.warn(`Insufficient balance: ${current} < ${amount}`);
+            return undefined; // No update
+        });
+        return success;
     }
 
     /**
