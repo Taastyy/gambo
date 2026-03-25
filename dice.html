@@ -362,46 +362,19 @@
             messageEl.className = 'game-message ' + type;
         }
 
-        // Würfeln Animation
-        function rollDice() {
+        async function rollDice() {
             if (gameState !== 'idle') return;
 
             const betInput = document.getElementById('bet-input');
             const bet = parseFloat(betInput.value);
-            const balance = getBalance();
 
             if (bet <= 0) {
                 showMessage('Wette muss größer als 0 sein!', 'lose');
                 return;
             }
 
-            if (bet > balance) {
-                showMessage('Unzureichendes Guthaben!', 'lose');
-                return;
-            }
-
-            // Wette abziehen mit balance.js
-            if (typeof deductFromBalance === 'function') {
-                deductFromBalance(bet).then((success) => {
-                    if (!success) {
-                        showMessage('Unzureichendes Guthaben!', 'lose');
-                        return;
-                    }
-                    startRollAnimation();
-                });
-            } else {
-                // Fallback
-                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
-                updateBalanceDisplay();
-                startRollAnimation();
-            }
-        }
-
-        // Würfel-Animation starten
-        function startRollAnimation() {
             gameState = 'rolling';
             
-            // UI aktualisieren
             document.getElementById('roll-btn').disabled = true;
             document.getElementById('bet-input').disabled = true;
             document.getElementById('target-slider').disabled = true;
@@ -410,80 +383,42 @@
             document.getElementById('btn-over').disabled = true;
             
             showMessage('Würfle...', 'running');
-            
-            // Animierte Würfelwerte anzeigen
-            let rollCount = 0;
-            const maxRolls = 20;
-            const rollInterval = setInterval(() => {
-                const randomValue = Math.random() * 100;
-                document.getElementById('dice-value').textContent = formatDiceValue(randomValue);
-                rollCount++;
-                
-                if (rollCount >= maxRolls) {
-                    clearInterval(rollInterval);
-                    finalizeRoll();
-                }
-            }, 50);
-        }
 
-        // Würfelergebnis finalisieren
-        function finalizeRoll() {
-            const diceResult = Math.random() * 100;
-            const finalValue = Math.floor(diceResult);
-            document.getElementById('dice-value').textContent = formatDiceValue(finalValue);
-            
-            // Gewinn/Verlust bestimmen
-            let won = false;
-            if (betDirection === 'under') {
-                won = finalValue < targetValue;
-            } else {
-                won = finalValue > targetValue;
+            try {
+                const token = localStorage.getItem('casinoToken');
+                const res = await fetch('/api/dice/play', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ bet: bet, target: targetValue, condition: betDirection })
+                });
+                const data = await res.json();
+                
+                if (!data.success) {
+                    showMessage(data.error || 'Fehler beim Würfeln', 'lose');
+                    resetDiceUI();
+                    return;
+                }
+
+                // Animierte Würfelwerte anzeigen
+                let rollCount = 0;
+                const maxRolls = 20;
+                const rollInterval = setInterval(() => {
+                    const randomValue = Math.random() * 100;
+                    document.getElementById('dice-value').textContent = formatDiceValue(randomValue);
+                    rollCount++;
+                    
+                    if (rollCount >= maxRolls) {
+                        clearInterval(rollInterval);
+                        finalizeRoll(data.roll, data.wonAmount, data.newBalance);
+                    }
+                }, 50);
+            } catch (err) {
+                showMessage('Netzwerkfehler', 'lose');
+                resetDiceUI();
             }
-            
-            // Statistiken aktualisieren
-            stats.totalGames++;
-            
-            if (won) {
-                const winnings = Math.floor(currentBet * currentMultiplier);
-                stats.wins++;
-                stats.totalWinnings += winnings;
-                if (currentMultiplier > stats.highestMultiplier) {
-                    stats.highestMultiplier = currentMultiplier;
-                }
-                if (winnings > stats.highestWin) {
-                    stats.highestWin = winnings;
-                }
-                
-                // Gewinn zur Balance hinzufügen
-                if (typeof addToBalance === 'function') {
-                    addToBalance(winnings).then(() => {
-                        updateBalanceDisplay();
-                    });
-                } else {
-                    const balance = getBalance();
-                    const newBalance = balance + winnings;
-                    localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
-                    updateBalanceDisplay();
-                }
-                
-                showMessage('Gewonnen! ' + finalValue + ' ' + (betDirection === 'under' ? '<' : '>') + ' ' + targetValue + ' → ' + formatNumber(winnings), 'win');
-            } else {
-                stats.losses++;
-                stats.totalLosses += currentBet;
-                
-                // Balance Anzeige aktualisieren
-                updateBalanceDisplay();
-                
-                showMessage('Verloren! ' + finalValue + ' ' + (betDirection === 'under' ? '>=' : '<=') + ' ' + targetValue, 'lose');
-            }
-            
-            saveStats();
-            
-            // Historie aktualisieren
-            addToHistory(finalValue, won);
-            updateStatsDisplay();
-            
-            // Spiel zurücksetzen
+        }
+        
+        function resetDiceUI() {
             gameState = 'idle';
             document.getElementById('roll-btn').disabled = false;
             document.getElementById('bet-input').disabled = false;
@@ -491,6 +426,45 @@
             document.getElementById('target-input').disabled = false;
             document.getElementById('btn-under').disabled = false;
             document.getElementById('btn-over').disabled = false;
+        }
+
+        function finalizeRoll(finalValue, wonAmount, newBalance) {
+            document.getElementById('dice-value').textContent = formatDiceValue(finalValue);
+            
+            const won = wonAmount > 0;
+            
+            // Statistiken aktualisieren
+            stats.totalGames++;
+            
+            if (won) {
+                stats.wins++;
+                stats.totalWinnings += wonAmount;
+                if (currentMultiplier > stats.highestMultiplier) {
+                    stats.highestMultiplier = currentMultiplier;
+                }
+                if (wonAmount > stats.highestWin) {
+                    stats.highestWin = wonAmount;
+                }
+                
+                showMessage('Gewonnen! ' + finalValue + ' ' + (betDirection === 'under' ? '<' : '>') + ' ' + targetValue + ' → ' + formatNumber(wonAmount), 'win');
+            } else {
+                stats.losses++;
+                stats.totalLosses += currentBet;
+                
+                showMessage('Verloren! ' + finalValue + ' ' + (betDirection === 'under' ? '>=' : '<=') + ' ' + targetValue, 'lose');
+            }
+            
+            if(document.getElementById('balance')) document.getElementById('balance').textContent = formatNumber(newBalance);
+            if(document.getElementById('stats-balance')) document.getElementById('stats-balance').textContent = formatNumber(newBalance);
+            if(typeof getBalance === 'function') getBalance(); // sync central
+            
+            saveStats();
+            
+            // Historie aktualisieren
+            addToHistory(finalValue, won);
+            updateStatsDisplay();
+            
+            resetDiceUI();
         }
 
         // Historie

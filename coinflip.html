@@ -301,43 +301,17 @@
             messageEl.className = 'game-message ' + type;
         }
 
-        // Münzflip Animation
-        function flipCoin() {
+        async function flipCoin() {
             if (gameState !== 'idle') return;
 
             const betInput = document.getElementById('bet-input');
             const bet = parseFloat(betInput.value);
-            const balance = getBalance();
 
             if (bet <= 0) {
                 showMessage('Wette muss größer als 0 sein!', 'lose');
                 return;
             }
 
-            if (bet > balance) {
-                showMessage('Unzureichendes Guthaben!', 'lose');
-                return;
-            }
-
-            // Wette abziehen mit balance.js
-            if (typeof deductFromBalance === 'function') {
-                deductFromBalance(bet).then((success) => {
-                    if (!success) {
-                        showMessage('Unzureichendes Guthaben!', 'lose');
-                        return;
-                    }
-                    startFlipAnimation();
-                });
-            } else {
-                // Fallback
-                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
-                updateBalanceDisplay();
-                startFlipAnimation();
-            }
-        }
-
-        // Münzflip-Animation starten
-        function startFlipAnimation() {
             gameState = 'flipping';
             
             // UI aktualisieren
@@ -348,74 +322,64 @@
             
             showMessage('Münze wird geworfen...', 'running');
             
-            // Münzresultat bestimmen (50/50)
-            const result = Math.random() < 0.5 ? 'heads' : 'tails';
-            const won = result === choice;
-            
-            // Animation starten
-            const coin = document.getElementById('coin');
-            const flips = 5 + Math.floor(Math.random() * 3); // 5-7 Umdrehungen
-            const duration = 2000; // 2 Sekunden
-            
-            coin.style.transition = `transform ${duration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
-            coin.style.transform = `rotateY(${flips * 180}deg)`;
-            
-            // Nach der Animation Ergebnis anzeigen
-            setTimeout(() => {
-                // Zusätzliche Rotation für die gewünschte Seite
-                if ((flips % 2 === 0 && result === 'tails') || (flips % 2 === 1 && result === 'heads')) {
-                    coin.style.transform = `rotateY(${flips * 180 + 180}deg)`;
-                }
+            try {
+                const token = localStorage.getItem('casinoToken');
+                const res = await fetch('/api/coinflip/play', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ bet: bet, side: choice })
+                });
+                const data = await res.json();
                 
-                finalizeFlip(result, won);
-            }, duration);
+                if (!data.success) {
+                    showMessage(data.error || 'Fehler beim Werfen', 'lose');
+                    resetCoinflipUI();
+                    return;
+                }
+
+                const flips = 5 + Math.floor(Math.random() * 3); // 5-7 Umdrehungen
+                const duration = 2000;
+                const coin = document.getElementById('coin');
+                
+                coin.style.transition = `transform ${duration}ms cubic-bezier(0.175, 0.885, 0.32, 1.275)`;
+                coin.style.transform = `rotateY(${flips * 180}deg)`;
+                
+                setTimeout(() => {
+                    if ((flips % 2 === 0 && data.result === 'tails') || (flips % 2 === 1 && data.result === 'heads')) {
+                        coin.style.transform = `rotateY(${flips * 180 + 180}deg)`;
+                    }
+                    finalizeFlip(data.result, data.wonAmount, data.newBalance);
+                }, duration);
+            } catch (err) {
+                showMessage('Netzwerkfehler', 'lose');
+                resetCoinflipUI();
+            }
+        }
+        
+        function resetCoinflipUI() {
+             gameState = 'idle';
+             document.getElementById('flip-btn').disabled = false;
+             document.getElementById('bet-input').disabled = false;
+             document.getElementById('btn-heads').disabled = false;
+             document.getElementById('btn-tails').disabled = false;
         }
 
-        // Münzergebnis finalisieren
-        function finalizeFlip(result, won) {
-            const coin = document.getElementById('coin');
+        function finalizeFlip(result, wonAmount, newBalance) {
             const coinResult = document.getElementById('coin-result');
-            
-            // Statistiken aktualisieren
             stats.totalGames++;
+            if (result === 'heads') stats.headsCount++; else stats.tailsCount++;
             
-            if (result === 'heads') {
-                stats.headsCount++;
-            } else {
-                stats.tailsCount++;
-            }
-            
-            if (won) {
-                const winnings = Math.floor(currentBet * currentMultiplier);
+            if (wonAmount > 0) {
                 stats.wins++;
-                stats.totalWinnings += winnings;
-                if (winnings > stats.highestWin) {
-                    stats.highestWin = winnings;
-                }
-                
-                // Gewinn zur Balance hinzufügen
-                if (typeof addToBalance === 'function') {
-                    addToBalance(winnings).then(() => {
-                        updateBalanceDisplay();
-                    });
-                } else {
-                    const balance = getBalance();
-                    const newBalance = balance + winnings;
-                    localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
-                    updateBalanceDisplay();
-                }
-                
+                stats.totalWinnings += wonAmount;
+                if (wonAmount > stats.highestWin) stats.highestWin = wonAmount;
                 const choiceText = choice === 'heads' ? 'KOPF' : 'ZAHL';
-                showMessage(`Gewonnen! ${choiceText} → ${formatNumber(winnings)}`, 'win');
+                showMessage(`Gewonnen! ${choiceText} → ${formatNumber(wonAmount)}`, 'win');
                 coinResult.textContent = '✅';
                 coinResult.className = 'coin-result win';
             } else {
                 stats.losses++;
                 stats.totalLosses += currentBet;
-                
-                // Balance Anzeige aktualisieren
-                updateBalanceDisplay();
-                
                 const choiceText = choice === 'heads' ? 'KOPF' : 'ZAHL';
                 const resultText = result === 'heads' ? 'KOPF' : 'ZAHL';
                 showMessage(`Verloren! ${resultText} kam, nicht ${choiceText}`, 'lose');
@@ -423,24 +387,19 @@
                 coinResult.className = 'coin-result lose';
             }
             
-            saveStats();
+            if(document.getElementById('balance')) document.getElementById('balance').textContent = formatNumber(newBalance);
+            if(document.getElementById('stats-balance')) document.getElementById('stats-balance').textContent = formatNumber(newBalance);
+            if(typeof getBalance === 'function') getBalance(); // Sync central balance
             
-            // Historie aktualisieren
-            addToHistory(result, won);
+            saveStats();
+            addToHistory(result, wonAmount > 0);
             updateStatsDisplay();
             
-            // Spiel zurücksetzen
             setTimeout(() => {
-                gameState = 'idle';
-                document.getElementById('flip-btn').disabled = false;
-                document.getElementById('bet-input').disabled = false;
-                document.getElementById('btn-heads').disabled = false;
-                document.getElementById('btn-tails').disabled = false;
-                
-                // Münze zurück setzen
+                resetCoinflipUI();
+                const coin = document.getElementById('coin');
                 coin.style.transition = 'transform 0.3s ease';
                 coin.style.transform = 'rotateY(0deg)';
-                
                 coinResult.textContent = '';
                 coinResult.className = 'coin-result';
             }, 2000);

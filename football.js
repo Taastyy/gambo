@@ -20,7 +20,7 @@ const TEAMS = [
 let matches = [];
 let betSlip = [];
 let activeBets = [];
-let balance = 1000;
+
 let stats = {
     totalBets: 0,
     wins: 0,
@@ -272,41 +272,52 @@ async function placeBet() {
 
     placeBetBtnEl.disabled = true;
 
-    if (typeof deductFromBalance === 'function') {
-        const success = await deductFromBalance(amount);
-        if (!success) {
-            showGameMessage('Nicht genügend Guthaben!', 'error');
+    const totalOdds = betSlip.reduce((acc, item) => acc * item.odds, 1);
+    
+    // Call server
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/football/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ amount, totalOdds })
+        });
+        const data = await res.json();
+        
+        if (!data.success) {
+            showGameMessage(data.error || 'Server Fehler!', 'error');
+            placeBetBtnEl.disabled = false;
             return;
         }
-    } else {
-        balance -= amount;
+
+        // Deduct balance instantly
+        if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance - data.wonAmount).toLocaleString();
+
+        const ticket = {
+            id: Date.now(),
+            bets: [...betSlip],
+            amount,
+            totalOdds,
+            potentialPayout: data.wonAmount || Math.floor(amount * totalOdds),
+            status: 'pending'
+        };
+
+        activeBets.push(ticket);
+        stats.totalBets++;
+        saveStats();
+        renderActiveBets();
+        updateStatsUI();
+        
+        betSlip = [];
+        renderSlip();
+        updateUISelections();
+        
+        startSimulation(ticket, data.isWin, data);
+
+    } catch(e) {
+        showGameMessage('Netzwerkfehler', 'error');
+        placeBetBtnEl.disabled = false;
     }
-
-    const totalOdds = betSlip.reduce((acc, item) => acc * item.odds, 1);
-    const potentialPayout = Math.floor(amount * totalOdds);
-
-    const ticket = {
-        id: Date.now(),
-        bets: [...betSlip],
-        amount,
-        totalOdds,
-        potentialPayout,
-        status: 'pending'
-    };
-
-    activeBets.push(ticket);
-    stats.totalBets++;
-    saveStats();
-    renderActiveBets();
-    updateStatsUI();
-    
-    // Clear current slip
-    betSlip = [];
-    renderSlip();
-    updateUISelections();
-    
-    syncBalanceDisplay();
-    startSimulation(ticket);
 }
 
 function renderActiveBets() {
@@ -327,7 +338,7 @@ function renderActiveBets() {
     });
 }
 
-async function startSimulation(ticket) {
+async function startSimulation(ticket, isWin, serverData) {
     const overlay = document.getElementById('sim-overlay');
     const simMatchesEl = document.getElementById('sim-matches');
     const timerEl = document.getElementById('sim-timer');
@@ -336,7 +347,7 @@ async function startSimulation(ticket) {
     overlay.classList.add('show');
     closeBtn.style.display = 'none';
     
-    // Prepare match results for this ticket's matches
+    // Prepare match results
     const results = ticket.bets.map(b => {
         const match = matches.find(m => m.id === b.matchId);
         return {
@@ -345,23 +356,33 @@ async function startSimulation(ticket) {
             away: match.away,
             scoreHome: 0,
             scoreAway: 0,
-            // Determine eventual winner based on odds
             finalScoreHome: 0,
             finalScoreAway: 0
         };
     });
 
-    // Determine final scores first (hidden)
-    results.forEach(res => {
-        const match = matches.find(m => m.id === res.matchId);
-        // Strength-based scoring
-        // Logic: Avg goals ~ 2.5
-        const strengthDiff = (res.home.strength - res.away.strength) / 10; // -1 to +1 approx
-        const lambdaHome = 1.3 + (strengthDiff * 0.5);
-        const lambdaAway = 1.3 - (strengthDiff * 0.5);
-        
-        res.finalScoreHome = poissonRandom(lambdaHome);
-        res.finalScoreAway = poissonRandom(lambdaAway);
+    // Make sure we lose at least one if `isWin` is false
+    let fakeLoseIndex = -1;
+    if (!isWin) fakeLoseIndex = Math.floor(Math.random() * results.length);
+
+    results.forEach((res, index) => {
+        let shouldWinThisMatch = false;
+        if (isWin) {
+            shouldWinThisMatch = true;
+        } else {
+            if (index === fakeLoseIndex) shouldWinThisMatch = false;
+            else shouldWinThisMatch = Math.random() < 0.5;
+        }
+
+        if (shouldWinThisMatch) {
+            if (res.pick === '1') { res.finalScoreHome = 2; res.finalScoreAway = 0; }
+            if (res.pick === '2') { res.finalScoreHome = 0; res.finalScoreAway = 2; }
+            if (res.pick === 'X') { res.finalScoreHome = 1; res.finalScoreAway = 1; }
+        } else {
+            if (res.pick === '1') { res.finalScoreHome = 0; res.finalScoreAway = 2; }
+            if (res.pick === '2') { res.finalScoreHome = 2; res.finalScoreAway = 0; }
+            if (res.pick === 'X') { res.finalScoreHome = 2; res.finalScoreAway = 1; }
+        }
     });
 
     // Simulate minutes
@@ -396,10 +417,10 @@ async function startSimulation(ticket) {
     closeBtn.style.display = 'block';
     
     // Check ticket result
-    checkTicketResult(ticket, results);
+    checkTicketResult(ticket, results, serverData);
 }
 
-function checkTicketResult(ticket, simResults) {
+function checkTicketResult(ticket, simResults, serverData) {
     let won = true;
     
     simResults.forEach(res => {
@@ -416,9 +437,9 @@ function checkTicketResult(ticket, simResults) {
     ticket.status = won ? 'won' : 'lost';
     
     if (won) {
-        handleWin(ticket.potentialPayout);
+        handleWin(ticket.potentialPayout, serverData);
     } else {
-        handleLoss(ticket.amount);
+        handleLoss(ticket.amount, serverData);
     }
 
     saveTeamData();
@@ -438,28 +459,31 @@ function updateTeamForm(home, away, result) {
     }
 }
 
-async function handleWin(amount) {
+async function handleWin(amount, serverData) {
     stats.wins++;
     stats.totalWinnings += amount;
     if (amount > stats.highestWin) stats.highestWin = amount;
     
-    // Crucial: Use the amount calculated and sync with balance.js
-    if (typeof addToBalance === 'function') {
-        await addToBalance(amount);
-    } else {
-        balance += amount;
+    if (serverData && document.getElementById('balance')) {
+        document.getElementById('balance').textContent = Math.round(serverData.newBalance).toLocaleString();
+        if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
     }
     
     saveStats();
     updateStatsUI();
-    syncBalanceDisplay();
     showWinOverlay(amount);
 }
 
-function handleLoss(amount) {
+function handleLoss(amount, serverData) {
     stats.losses++;
     saveStats();
     updateStatsUI();
+
+    if (serverData && document.getElementById('balance')) {
+        document.getElementById('balance').textContent = Math.round(serverData.newBalance).toLocaleString();
+        if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+    }
+
     showGameMessage(`Schade! Kein Gewinn diesmal.`, 'error');
 }
 

@@ -47,7 +47,7 @@ const NEWS_EVENTS = [
 // Game state
 let portfolio = {};
 let shortPortfolio = {};
-let balance = 1000;
+
 let totalProfit = 0;
 let countdown = 30;
 let countdownInterval;
@@ -410,19 +410,25 @@ async function confirmBuy() {
     const qty = parseInt(document.getElementById('buy-quantity').value) || 1;
     if (!selectedAssetForBuy || qty < 1) return closeBuyModal();
 
-    const cost = qty * selectedAssetForBuy.price;
-    if (typeof deductFromBalance === 'function' && await deductFromBalance(cost)) {
-        if (!portfolio[selectedAssetForBuy.symbol]) portfolio[selectedAssetForBuy.symbol] = { shares: 0, totalInvested: 0 };
-        portfolio[selectedAssetForBuy.symbol].shares += qty;
-        portfolio[selectedAssetForBuy.symbol].totalInvested += cost;
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/stocks/buy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ symbol: selectedAssetForBuy.symbol, quantity: qty })
+        });
+        const data = await res.json();
+        if (!data.success) { showMessage(data.error || 'Fehler', 'error'); closeBuyModal(); return; }
+
+        portfolio = data.portfolio.long || {};
+        shortPortfolio = data.portfolio.short || {};
         stats.transactions++;
-        stats.totalInvested += cost;
-        addTransaction('buy', selectedAssetForBuy.symbol, qty, cost);
+        stats.totalInvested += qty * selectedAssetForBuy.price;
+        addTransaction('buy', selectedAssetForBuy.symbol, qty, qty * selectedAssetForBuy.price);
+        updateBalanceDisplay(data.balance);
         saveGameData(); updateUI(); renderStocks(); renderPortfolio();
-        showMessage(`${qty} ${selectedAssetForBuy.symbol} gekauft für $${cost.toFixed(2)}`, 'success');
-    } else {
-        showMessage('Nicht genügend Guthaben!', 'error');
-    }
+        showMessage(`${qty} ${selectedAssetForBuy.symbol} gekauft!`, 'success');
+    } catch(e) { showMessage('Netzwerkfehler', 'error'); }
     closeBuyModal();
 }
 
@@ -462,27 +468,30 @@ async function confirmSell() {
     if (!selectedAssetForSell || qty < 1) return closeSellModal();
 
     const sym = selectedAssetForSell.symbol;
-    const toSell = Math.min(qty, portfolio[sym].shares);
-    const revenue = toSell * selectedAssetForSell.price;
-    const invested = portfolio[sym].totalInvested / portfolio[sym].shares;
-    const profit = (revenue / toSell) - invested;
+    const toSell = Math.min(qty, (portfolio[sym] && portfolio[sym].shares) || 0);
+    if (toSell < 1) { closeSellModal(); return; }
 
-    if (typeof addToBalance === 'function') {
-        await addToBalance(revenue);
-        portfolio[sym].shares -= toSell;
-        portfolio[sym].totalInvested -= (invested * toSell);
-        if (portfolio[sym].shares <= 0) delete portfolio[sym];
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/stocks/sell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ symbol: sym, quantity: toSell })
+        });
+        const data = await res.json();
+        if (!data.success) { showMessage(data.error || 'Fehler', 'error'); closeSellModal(); return; }
 
-        const totalTradeProfit = profit * toSell;
-        totalProfit += totalTradeProfit;
-        stats.totalProfit += totalTradeProfit;
-        if (totalTradeProfit > 0) stats.winningTrades++; else stats.losingTrades++;
-        if (totalTradeProfit > stats.highestProfit) stats.highestProfit = totalTradeProfit;
-
-        addTransaction('sell', sym, toSell, revenue);
+        portfolio = data.portfolio.long || {};
+        shortPortfolio = data.portfolio.short || {};
+        const profit = data.profit || 0;
+        totalProfit += profit; stats.totalProfit += profit;
+        if (profit > 0) stats.winningTrades++; else stats.losingTrades++;
+        if (profit > stats.highestProfit) stats.highestProfit = profit;
+        addTransaction('sell', sym, toSell, toSell * selectedAssetForSell.price);
+        updateBalanceDisplay(data.balance);
         saveGameData(); updateUI(); renderStocks(); renderPortfolio();
-        showMessage(`${toSell} ${sym} verkauft! ${profit >= 0 ? '+' : ''}$${totalTradeProfit.toFixed(2)}`, profit >= 0 ? 'success' : 'error');
-    }
+        showMessage(`${toSell} ${sym} verkauft! ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}`, profit >= 0 ? 'success' : 'error');
+    } catch(e) { showMessage('Netzwerkfehler', 'error'); }
     closeSellModal();
 }
 
@@ -600,29 +609,24 @@ async function confirmShort() {
     const lev = parseInt(document.getElementById('short-leverage').value) || 1;
     if (!selectedAssetForShort || q < 1) return closeShortModal();
 
-    const sym = selectedAssetForShort.symbol;
-    const posVal = q * selectedAssetForShort.price;
-    const margin = posVal / lev;
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/stocks/short', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ symbol: selectedAssetForShort.symbol, quantity: q, leverage: lev })
+        });
+        const data = await res.json();
+        if (!data.success) { showMessage(data.error || 'Fehler', 'error'); closeShortModal(); return; }
 
-    if (typeof deductFromBalance === 'function' && await deductFromBalance(margin)) {
-        if (!shortPortfolio[sym]) shortPortfolio[sym] = { shares: 0, entryPrice: 0, totalBorrowed: 0, leverage: lev, margin: 0 };
-        const cur = shortPortfolio[sym];
-        const oldVal = cur.shares * cur.entryPrice;
-
-        cur.shares += q;
-        cur.entryPrice = (oldVal + posVal) / cur.shares;
-        cur.totalBorrowed += posVal;
-        cur.leverage = cur.shares > q ? Math.round(((cur.leverage * oldVal) + (lev * posVal)) / (oldVal + posVal)) : lev;
-        cur.margin += margin;
-        cur.liquidationPrice = calculateLiquidationPrice(cur.entryPrice, cur.leverage);
-
-        if (typeof addToBalance === 'function') await addToBalance(posVal);
-
+        portfolio = data.portfolio.long || {};
+        shortPortfolio = data.portfolio.short || {};
         stats.transactions++;
-        addTransaction('short', sym, q, posVal, 0, lev);
+        addTransaction('short', selectedAssetForShort.symbol, q, q * selectedAssetForShort.price, 0, lev);
+        updateBalanceDisplay(data.balance);
         saveGameData(); updateUI(); renderStocks(); renderShortPortfolio();
-        showMessage(`${q} ${sym} SHORT @ $${selectedAssetForShort.price.toFixed(2)} (${lev}x)`, 'success');
-    }
+        showMessage(`${q} ${selectedAssetForShort.symbol} SHORT (${lev}x)`, 'success');
+    } catch(e) { showMessage('Netzwerkfehler', 'error'); }
     closeShortModal();
 }
 
@@ -669,32 +673,30 @@ async function confirmCover() {
     if (!selectedAssetForCover || q < 1) return closeCoverModal();
 
     const sym = selectedAssetForCover.symbol;
-    const pos = shortPortfolio[sym];
-    const toCover = Math.min(q, pos.shares);
-    const cost = toCover * selectedAssetForCover.price;
-    const entryVal = toCover * pos.entryPrice;
+    if (!shortPortfolio[sym]) { closeCoverModal(); return; }
+    const toCover = Math.min(q, shortPortfolio[sym].shares);
 
-    const levPnl = (entryVal - cost) * pos.leverage;
-    const marginRatio = toCover / pos.shares;
-    const marginReturn = pos.margin * marginRatio;
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/stocks/cover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ symbol: sym, quantity: toCover })
+        });
+        const data = await res.json();
+        if (!data.success) { showMessage(data.error || 'Fehler', 'error'); closeCoverModal(); return; }
 
-    if (typeof deductFromBalance === 'function' && await deductFromBalance(cost)) {
-        pos.shares -= toCover;
-        pos.totalBorrowed -= entryVal;
-        pos.margin -= marginReturn;
-
-        if (typeof addToBalance === 'function') await addToBalance(marginReturn + levPnl);
-
-        if (pos.shares <= 0) delete shortPortfolio[sym];
-
-        totalProfit += levPnl; stats.totalProfit += levPnl;
-        if (levPnl > 0) stats.winningTrades++; else stats.losingTrades++;
-        if (levPnl > stats.highestProfit) stats.highestProfit = levPnl;
-
-        addTransaction('cover', sym, toCover, cost, levPnl, pos.leverage);
+        portfolio = data.portfolio.long || {};
+        shortPortfolio = data.portfolio.short || {};
+        const profit = data.profit || 0;
+        totalProfit += profit; stats.totalProfit += profit;
+        if (profit > 0) stats.winningTrades++; else stats.losingTrades++;
+        if (profit > stats.highestProfit) stats.highestProfit = profit;
+        addTransaction('cover', sym, toCover, toCover * selectedAssetForCover.price, profit);
+        if (data.balance !== undefined) updateBalanceDisplay(data.balance);
         saveGameData(); updateUI(); renderStocks(); renderShortPortfolio();
-        showMessage(`Covered ${toCover} ${sym}! ${levPnl >= 0 ? '+' : ''}$${levPnl.toFixed(2)}`, levPnl >= 0 ? 'success' : 'error');
-    } else { showMessage('Guthaben fehlt!', 'error'); }
+        showMessage(`Covered ${toCover} ${sym}! ${profit >= 0 ? '+' : ''}$${profit.toFixed(2)}`, profit >= 0 ? 'success' : 'error');
+    } catch(e) { showMessage('Netzwerkfehler', 'error'); }
     closeCoverModal();
 }
 
@@ -704,31 +706,22 @@ function closeCoverModal() {
     selectedAssetForCover = null;
 }
 
-function updateStockPrices() {
-    marketPhaseCountdown--;
-    if (marketPhaseCountdown <= 0) {
-        currentMarketPhase = Math.random() < 0.6 ? 'bull' : 'bear';
-        marketPhaseCountdown = Math.floor(Math.random() * 6) + 5;
-    }
-
-    const marketTrend = currentMarketPhase;
-    const updateAssetPrices = (assets) => {
-        assets.forEach(asset => {
-            const base = asset.basePrice || asset.history[0] || asset.price;
-            const deviation = (asset.price - base) / base;
-            const meanReversion = -deviation * 0.002;
-            const adjustedVolatility = (asset.volatility || 0.02) * (1 + Math.abs(deviation) * 0.5);
-            const change = (Math.random() - 0.5) * 2 * adjustedVolatility;
-
-            let trend = marketTrend === 'bull' ? 0.004 : marketTrend === 'bear' ? -0.004 : -0.015;
-            asset.price = Math.max(1, asset.price * (1 + change + trend + meanReversion));
-            asset.history.push(asset.price);
-            if (asset.history.length > 100) asset.history.shift();
-        });
-    };
-
-    updateAssetPrices(STOCKS);
-    updateAssetPrices(ETFS);
+async function updateStockPrices() {
+    // Fetch prices from server (source of truth)
+    try {
+        const res = await fetch('/api/stocks/market');
+        const data = await res.json();
+        if (data.success && data.market) {
+            data.market.forEach(serverAsset => {
+                const local = STOCKS.find(s => s.symbol === serverAsset.symbol) || ETFS.find(e => e.symbol === serverAsset.symbol);
+                if (local) {
+                    local.history.push(serverAsset.price);
+                    if (local.history.length > 100) local.history.shift();
+                    local.price = serverAsset.price;
+                }
+            });
+        }
+    } catch(e) { /* offline fallback: keep local prices */ }
 
     const allAssets = [...STOCKS, ...ETFS];
     const avgChange = allAssets.reduce((sum, a) => sum + calculatePriceChange(a), 0) / allAssets.length;
@@ -737,29 +730,37 @@ function updateStockPrices() {
     else if (avgChange < -0.5) { marketIndicator.textContent = 'BEAR'; marketIndicator.style.color = 'var(--lose-red)'; }
     else { marketIndicator.textContent = 'SIDEWAYS'; marketIndicator.style.color = 'var(--primary-gold)'; }
 
-    // Liquidations
+    // Check liquidations client-side for display only (server is source of truth)
     Object.entries(shortPortfolio).forEach(([sym, data]) => {
         const asset = STOCKS.find(s => s.symbol === sym);
-        if (asset && asset.price >= (data.liquidationPrice || calculateLiquidationPrice(data.entryPrice, data.leverage))) {
-            const loss = data.margin;
-            delete shortPortfolio[sym];
-            stats.losingTrades++; totalProfit -= loss; stats.totalProfit -= loss;
-            addTransaction('liquidation', sym, data.shares, loss);
-            showMessage(`⚠ ${sym} LIQUIDIERT! -$${loss.toFixed(2)}`, 'error');
+        if (asset && data.entryPrice && data.leverage) {
+            const liq = calculateLiquidationPrice(data.entryPrice, data.leverage);
+            if (asset.price >= liq) {
+                showMessage(`⚠ ${sym} LIQUIDIERT!`, 'error');
+            }
         }
     });
 
-    if (Math.random() <= 0.35) {
-        const ev = NEWS_EVENTS[Math.floor(Math.random() * NEWS_EVENTS.length)];
-        const asset = STOCKS.find(s => s.symbol === ev.symbol) || ETFS.find(e => e.symbol === ev.symbol);
-        if (asset) {
-            asset.price = Math.max(1, asset.price * (1 + ev.impact));
-            asset.history.push(asset.price);
-            showNewsToast(ev.text, ev.symbol, ev.impact);
+    // Also sync portfolio from server
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const pfRes = await fetch('/api/stocks/portfolio', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const pfData = await pfRes.json();
+        if (pfData.success) {
+            portfolio = pfData.portfolio.long || {};
+            shortPortfolio = pfData.portfolio.short || {};
         }
-    }
+    } catch(e) { /* keep local */ }
 
     saveGameData(); renderStocks(); renderPortfolio(); renderShortPortfolio(); updateUI();
+}
+
+function updateBalanceDisplay(newBalance) {
+    const balEl = document.getElementById('balance');
+    if (balEl) balEl.textContent = Math.round(newBalance).toLocaleString();
+    if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
 }
 
 function showNewsToast(text, sym, imp) {

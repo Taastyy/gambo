@@ -282,26 +282,41 @@ function updateBetDisplay() {
 // GAME LOGIC
 // ==========================================================================
 
-function startNewGame() {
+async function startNewGame() {
     if (game.state.isPlaying) return;
     
-    const currentBalance = getBalanceSync();
-    if (currentBalance < game.state.currentBet) {
-        showMessage('Nicht genügend Guthaben!', 'lose');
+    const stepsCount = parseInt(game.elements.roadSteps.value);
+
+    // Call server to start road game
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/road/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ amount: game.state.currentBet, stepsCount })
+        });
+        const data = await res.json();
+        
+        if (!data.success) {
+            showMessage(data.error || 'Server Fehler!', 'error');
+            return;
+        }
+
+        // Deduct balance instantly
+        if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance).toLocaleString();
+    } catch(e) {
+        showMessage('Netzwerkfehler', 'error');
         return;
     }
     
-    // Deduct bet
-    deductFromBalance(game.state.currentBet);
-    
     // Reset game state
-    game.state.stepsCount = parseInt(game.elements.roadSteps.value);
+    game.state.stepsCount = stepsCount;
     game.state.currentStep = 0;
     game.state.isGameOver = false;
     game.state.isPlaying = true;
     game.state.currentMultiplier = 1.0;
     game.state.potentialWin = game.state.currentBet;
-    game.state.crashPoint = generateCrashPoint();
+    game.state.crashPoint = 999; // Set by server on crash
     
     // Reset road display
     resetRoad();
@@ -355,52 +370,45 @@ function generateCrashPoint() {
     return stepsCount;
 }
 
-function takeStep() {
+async function takeStep() {
     if (!game.state.isPlaying) return;
-    
-    game.state.currentStep++;
-    
-    // Check if crashed
-    if (game.state.currentStep >= game.state.crashPoint) {
-        revealCrashPoint();
-        endGame(false);
-        return;
-    }
-    
-    // Safe step - update multiplier
-    updateMultiplier();
-    
-    // Update road display
-    updateRoadDisplay();
-    updateUI();
-    
-    // Check if reached the end
-    if (game.state.currentStep >= game.state.stepsCount) {
-        endGame(true);
-        return;
-    }
-    
-    // Check balance
-    getBalance().then((balance) => {
-        if (balance <= 0) {
-            showMessage('Kein Guthaben mehr! Spiel vorbei.', 'lose');
+
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/road/step', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.status === 'crash') {
+            game.state.currentStep++;
+            game.state.crashPoint = data.crashPoint;
+            revealCrashPoint();
             endGame(false);
+            return;
         }
-    });
+
+        if (data.status === 'safe') {
+            game.state.currentStep = data.currentStep;
+            game.state.currentMultiplier = data.multiplier;
+            game.state.potentialWin = Math.round(game.state.currentBet * game.state.currentMultiplier);
+            
+            updateRoadDisplay();
+            updateUI();
+
+            if (game.state.currentStep >= game.state.stepsCount) {
+                cashOut();
+            }
+        } else if (data.error) {
+            showMessage(data.error, 'error');
+        }
+    } catch (e) {
+        showMessage('Netzwerkfehler', 'error');
+    }
 }
 
-function updateMultiplier() {
-    const steps = game.state.currentStep;
-    
-    // Use a more realistic multiplier formula: 1.0 + (0.05 * steps)
-    game.state.currentMultiplier = 1.0 + (0.05 * steps);
-    
-    // Round to 2 decimal places
-    game.state.currentMultiplier = Math.round(game.state.currentMultiplier * 100) / 100;
-    
-    // Calculate potential win
-    game.state.potentialWin = Math.round(game.state.currentBet * game.state.currentMultiplier);
-}
+// Removed local updateMultiplier
 
 function updateRoadDisplay() {
     const stepsCount = parseInt(game.elements.roadSteps.value) || CONFIG.ROAD_STEPS;
@@ -482,36 +490,55 @@ function updatePotentialWin() {
     game.elements.potentialWin.textContent = game.state.potentialWin;
 }
 
-function cashOut() {
+async function cashOut() {
     if (!game.state.isPlaying) return;
     if (game.state.currentStep === 0) return;
     
-    endGame(true, true);
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/road/cashout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (data.status === 'cashed_out') {
+            endGame(true, true, data);
+        } else {
+            showMessage(data.error || 'Server error', 'error');
+        }
+    } catch(e) {
+        showMessage('Netzwerkfehler', 'error');
+    }
 }
 
-function endGame(won, cashedOut = false) {
+function endGame(won, cashedOut = false, serverData = null) {
     game.state.isPlaying = false;
     game.state.isGameOver = true;
     
-    const profit = won ? game.state.potentialWin - game.state.currentBet : -game.state.currentBet;
+    const profit = won && serverData ? serverData.wonAmount - game.state.currentBet : -game.state.currentBet;
     
-    if (won) {
-        addToBalance(game.state.potentialWin);
+    if (won && serverData) {
+        if (document.getElementById('balance')) {
+            document.getElementById('balance').textContent = Math.round(serverData.newBalance).toLocaleString();
+            if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+        }
+
         game.state.wins++;
         game.state.totalWinnings += profit;
         
-        if (game.state.potentialWin > game.state.highestWin) {
-            game.state.highestWin = game.state.potentialWin;
+        if (serverData.wonAmount > game.state.highestWin) {
+            game.state.highestWin = serverData.wonAmount;
         }
         
-        if (cashedOut) {
+        if (cashedOut && game.state.currentStep < game.state.stepsCount) {
             showMessage(`Gewonnen! Du hast ${profit} ausgecasht!`, 'win');
             triggerVictoryAnimation();
         } else {
             showMessage(`Herzlichen Glückwunsch! Du hast alle Schritte überlebt und ${profit} gewonnen!`, 'win');
             triggerVictoryAnimation();
         }
-    } else {
+    } else if (!won) {
         game.state.losses++;
         game.state.totalLosses += game.state.currentBet;
         showMessage(`Oh nein! Du bist auf eine Mine getreten und hast ${game.state.currentBet} verloren!`, 'lose');

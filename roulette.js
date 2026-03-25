@@ -233,16 +233,17 @@ function showToast(msg, isErr) {
     state._toast = setTimeout(() => toastEl.classList.remove('show'), 2500);
 }
 
-async function placeBet(cell) {
+function placeBet(cell) {
     if (state.spinning) return;
     const amt = state.currentChip;
-    if (typeof hasEnoughBalance === 'function' && !(await hasEnoughBalance(amt))) {
+    
+    // Check balance locally first for better UX
+    const balSync = getBalanceSync();
+    if (balSync < amt) {
         showToast('Nicht genügend Guthaben!', true);
         return;
     }
-    if (typeof deductFromBalance === 'function') {
-        if (!(await deductFromBalance(amt))) return;
-    }
+    
     state.bets.push({ type: cell.dataset.bet, amount: amt, cell });
     state.totalBet += amt;
     renderChip(cell);
@@ -269,9 +270,8 @@ function renderChip(cell) {
     cell.appendChild(el);
 }
 
-async function clearBets() {
+function clearBets() {
     if (state.spinning || !state.bets.length) return;
-    if (typeof addToBalance === 'function') await addToBalance(state.totalBet);
     state.bets = [];
     state.totalBet = 0;
     document.querySelectorAll('.chip-placed').forEach(e => e.remove());
@@ -279,11 +279,10 @@ async function clearBets() {
     showToast('Einsätze gelöscht');
 }
 
-async function undoBet() {
+function undoBet() {
     if (state.spinning || !state.bets.length) return;
     const last = state.bets.pop();
     state.totalBet -= last.amount;
-    if (typeof addToBalance === 'function') await addToBalance(last.amount);
     renderChip(last.cell);
     updateUI();
 }
@@ -293,7 +292,7 @@ async function undoBet() {
    ========================================================================== */
 function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
 
-function spinWheel() {
+async function spinWheel() {
     if (state.spinning) return;
     if (!state.bets.length) { showToast('Bitte platziere einen Einsatz!'); return; }
 
@@ -305,49 +304,65 @@ function spinWheel() {
     stats.lost += state.totalBet;
     saveStats();
 
-    const winIdx = Math.floor(Math.random() * SEGMENTS);
-    const winNum = WHEEL_NUMBERS[winIdx];
-
-    // Target angle: bring winning segment under top pointer
-    const fullSpins = 5 * 360;
-    const segTarget = -(winIdx * SEG_DEG);
-    const targetAngle = state.wheelAngle + fullSpins + segTarget - (state.wheelAngle % 360);
-
-    // Ball params
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const ballR = (canvas.width / 2) - 24;   // on the outer track
-    const ballRInner = (canvas.width / 2) - 50;
-
-
-    displayNum.textContent = '···';
-    displayNum.style.color = 'var(--text-dim)';
-
-    const duration = 4200;
-    const t0 = performance.now();
-    const startAngle = state.wheelAngle;
-
-    function frame(now) {
-        let f = Math.min((now - t0) / duration, 1);
-        let e = easeOutQuart(f);
-
-        // Wheel
-        const currentAngle = startAngle + (targetAngle - startAngle) * e;
-        drawWheel(currentAngle);
-
-
-
-        if (f < 1) {
-            requestAnimationFrame(frame);
-        } else {
-            state.wheelAngle = targetAngle % 360;
-            finishSpin(winNum);
+    const token = localStorage.getItem('casinoToken');
+    try {
+        const res = await fetch('/api/roulette/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ bets: state.bets })
+        });
+        const data = await res.json();
+        
+        if (!data.success) {
+            showToast(data.error || 'Fehler beim Spin', true);
+            state.spinning = false;
+            document.getElementById('btn-spin').disabled = false;
+            return;
         }
+
+        const winNum = data.winningNumber;
+        const wonAmount = data.won;
+        const newBalance = data.newBalance;
+        
+        const winIdx = WHEEL_NUMBERS.indexOf(winNum);
+
+        // Target angle: bring winning segment under top pointer
+        const fullSpins = 5 * 360;
+        const segTarget = -(winIdx * SEG_DEG);
+        const targetAngle = state.wheelAngle + fullSpins + segTarget - (state.wheelAngle % 360);
+
+        displayNum.textContent = '···';
+        displayNum.style.color = 'var(--text-dim)';
+
+        const duration = 4200;
+        const t0 = performance.now();
+        const startAngle = state.wheelAngle;
+
+        function frame(now) {
+            let f = Math.min((now - t0) / duration, 1);
+            let e = easeOutQuart(f);
+
+            // Wheel
+            const currentAngle = startAngle + (targetAngle - startAngle) * e;
+            drawWheel(currentAngle);
+
+            if (f < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                state.wheelAngle = targetAngle % 360;
+                finishSpin(winNum, wonAmount, newBalance);
+            }
+        }
+        requestAnimationFrame(frame);
+    } catch (e) {
+        console.error(e);
+        showToast('Netzwerkfehler', true);
+        state.spinning = false;
+        document.getElementById('btn-spin').disabled = false;
     }
-    requestAnimationFrame(frame);
 }
 
-async function finishSpin(winNum) {
+async function finishSpin(winNum, wonAmount, newBalance) {
     state.spinning = false;
     document.getElementById('btn-spin').disabled = false;
 
@@ -355,25 +370,16 @@ async function finishSpin(winNum) {
     displayNum.textContent = winNum;
     displayNum.style.color = col === 'red' ? 'var(--red)' : (col === 'green' ? 'var(--green)' : 'var(--text)');
 
-    // Payouts
-    let won = 0;
-    const sums = {};
-    for (const b of state.bets) sums[b.type] = (sums[b.type] || 0) + b.amount;
-
-    for (const [type, amt] of Object.entries(sums)) {
-        if (checkWin(type, winNum)) {
-            won += amt + amt * getMultiplier(type);
-        }
-    }
-
-    if (won > 0) {
-        showToast('Gewonnen: ' + won + ' €');
-        stats.won += won;
+    if (wonAmount > 0) {
+        showToast('Gewonnen: ' + wonAmount + ' €');
+        stats.won += wonAmount;
         saveStats();
-        if (typeof addToBalance === 'function') await addToBalance(won);
     } else {
         showToast('Nix gewonnen!', true);
     }
+    
+    if (typeof updateAllDisplays === 'function') updateAllDisplays(newBalance);
+    if (typeof getBalance === 'function') await getBalance();
 
     // History
     state.history.unshift(winNum);
@@ -395,31 +401,6 @@ async function finishSpin(winNum) {
     updateUI();
 }
 
-/* ---------- Win logic ---------- */
-function checkWin(type, n) {
-    if (type.startsWith('num-')) return parseInt(type.split('-')[1]) === n;
-    if (n === 0) return false;
-    if (type === 'red')     return RED_NUMBERS.includes(n);
-    if (type === 'black')   return !RED_NUMBERS.includes(n);
-    if (type === 'even')    return n % 2 === 0;
-    if (type === 'odd')     return n % 2 !== 0;
-    if (type === 'low')     return n >= 1 && n <= 18;
-    if (type === 'high')    return n >= 19 && n <= 36;
-    if (type === 'dozen-1') return n >= 1  && n <= 12;
-    if (type === 'dozen-2') return n >= 13 && n <= 24;
-    if (type === 'dozen-3') return n >= 25 && n <= 36;
-    if (type === 'col-1')   return n % 3 === 1;
-    if (type === 'col-2')   return n % 3 === 2;
-    if (type === 'col-3')   return n % 3 === 0;
-    return false;
-}
-
-function getMultiplier(type) {
-    if (type.startsWith('num-')) return 35;
-    if (type.startsWith('col-') || type.startsWith('dozen-')) return 2;
-    return 1;
-}
-
 /* ---------- History ---------- */
 function renderHistory() {
     histList.innerHTML = '';
@@ -430,8 +411,6 @@ function renderHistory() {
         histList.appendChild(el);
     }
 }
-
-/* ---------- UI ---------- */
 function updateUI() {
     document.getElementById('current-bet').textContent = state.totalBet;
     if (typeof getBalanceSync === 'function') {

@@ -160,13 +160,13 @@ function handleMainAction() {
     }
 }
 
-function startGame() {
-    if(typeof getBalanceSync === 'function') {
-        if(getBalanceSync() < gameState.currentBet) {
-            showMsg('Nicht genügend Guthaben!', 'danger');
-            return;
-        }
-        if(typeof deductFromBalance === 'function') deductFromBalance(gameState.currentBet);
+async function startGame() {
+    let currentBal = 0;
+    if (typeof getBalanceSync === 'function') currentBal = getBalanceSync();
+    
+    if (currentBal < gameState.currentBet) {
+        showMsg('Nicht genügend Guthaben!', 'danger');
+        return;
     }
 
     gameState.state = GAME_STATE.PLAYING;
@@ -176,14 +176,34 @@ function startGame() {
     gameState.potentialWin = gameState.currentBet;
     gameState.hintsUsed = false;
     
-    generateMines();
-    
+    // Server start
+    try {
+        const token = localStorage.getItem('casinoToken');
+        const res = await fetch('/api/mines/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({ bet: gameState.currentBet, minesCount: gameState.minesCount })
+        });
+        const data = await res.json();
+        if (!data.success) {
+            showMsg(data.error || 'Server Fehler', 'danger');
+            gameState.state = GAME_STATE.WAITING;
+            return;
+        }
+        if (balanceEl) balanceEl.textContent = data.newBalance.toFixed(2);
+    } catch(e) {
+        showMsg('Netzwerkfehler', 'danger');
+        gameState.state = GAME_STATE.WAITING;
+        return;
+    }
+
     // Visual reset
     minesGridEl.classList.add('is-playing');
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
     tiles.forEach(t => {
         t.className = 'mine-tile';
         t.innerHTML = '';
+        t.style.opacity = '1';
     });
     
     updateUI();
@@ -191,61 +211,98 @@ function startGame() {
 }
 
 function generateMines() {
-    gameState.mineIndices = [];
-    while(gameState.mineIndices.length < gameState.minesCount) {
-        let r = Math.floor(Math.random() * TOTAL_TILES);
-        if(!gameState.mineIndices.includes(r)) gameState.mineIndices.push(r);
-    }
+    // Moved to server
 }
 
-function revealTile(index) {
+async function revealTile(index) {
     if(gameState.state !== GAME_STATE.PLAYING) return;
     if(gameState.revealedTiles.includes(index)) return;
 
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
     const tile = tiles[index];
 
-    // Remove hint text if present
     const hintText = tile.querySelector('.hint-text');
     if(hintText) hintText.remove();
 
-    if(gameState.mineIndices.includes(index)) {
-        // Boom
-        tile.classList.add('revealed', 'mine');
-        tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
-        endGame(false);
-    } else {
-        // Safe
-        gameState.revealedTiles.push(index);
-        tile.classList.add('revealed', 'safe');
-        tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
+    try {
+        const token = localStorage.getItem('casinoToken');
+        const res = await fetch('/api/mines/reveal', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+            body: JSON.stringify({ index })
+        });
+        const data = await res.json();
         
-        // Mult
-        let m = CUSTOM_MULTIPLIER_CACHE[gameState.minesCount][gameState.revealedTiles.length];
-        if(!m) m = 1.0;
-        gameState.currentMultiplier = m;
-        gameState.potentialWin = Math.floor(gameState.currentBet * m);
-        updateUI();
-
-        if(gameState.revealedTiles.length === (TOTAL_TILES - gameState.minesCount)) {
-            endGame(true, false);
+        if (!data.success) {
+            showMsg('Ungültiger Zug', 'danger');
+            return;
         }
+
+        if (data.gameover) { // BOOM or Auto-cashout
+            if (!data.win) {
+                // Mine hit
+                tile.classList.add('revealed', 'mine');
+                tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
+                gameState.mineIndices = data.mineIndices || [];
+                endGame(false, false, data.newBalance);
+            } else {
+                // Auto cashout (all safe tiles revealed)
+                gameState.revealedTiles.push(index);
+                tile.classList.add('revealed', 'safe');
+                tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
+                gameState.mineIndices = data.mineIndices || [];
+                gameState.potentialWin = data.wonAmount;
+                gameState.currentMultiplier = data.multiplier;
+                endGame(true, false, data.newBalance);
+            }
+        } else {
+            // Safe, continue playing
+            gameState.revealedTiles.push(index);
+            tile.classList.add('revealed', 'safe');
+            tile.innerHTML = '<div class="tile-inner"><div class="icon"></div></div>';
+            gameState.potentialWin = data.potentialWin;
+            gameState.currentMultiplier = data.multiplier;
+            updateUI();
+        }
+    } catch(e) {
+        showMsg('Netzwerkfehler', 'danger');
     }
 }
 
-function cashOut() {
-    if(gameState.state !== GAME_STATE.PLAYING) return;
-    endGame(true, true);
+async function cashOut() {
+    if(gameState.state !== GAME_STATE.PLAYING || gameState.revealedTiles.length === 0) return;
+    
+    try {
+        const token = localStorage.getItem('casinoToken');
+        const res = await fetch('/api/mines/cashout', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`}
+        });
+        const data = await res.json();
+        
+        if(!data.success) {
+            showMsg('Fehler beim Cashout', 'danger');
+            return;
+        }
+        
+        gameState.mineIndices = data.mineIndices || [];
+        gameState.potentialWin = data.wonAmount;
+        gameState.currentMultiplier = data.multiplier;
+        endGame(true, true, data.newBalance);
+        
+    } catch(e) {
+        showMsg('Netzwerkfehler', 'danger');
+    }
 }
 
-function endGame(won, cashedOut = false) {
+function endGame(won, cashedOut = false, newBalance) {
     gameState.state = GAME_STATE.GAME_OVER;
     minesGridEl.classList.remove('is-playing');
     
     // Reveal everything
     const tiles = minesGridEl.querySelectorAll('.mine-tile');
     
-    gameState.mineIndices.forEach(idx => {
+    (gameState.mineIndices || []).forEach(idx => {
         const t = tiles[idx];
         if(!t.classList.contains('revealed')) {
             t.classList.add('revealed', won ? 'mine-faded' : 'mine');
@@ -254,7 +311,7 @@ function endGame(won, cashedOut = false) {
     });
 
     for(let i=0; i<TOTAL_TILES; i++) {
-        if(!gameState.mineIndices.includes(i) && !gameState.revealedTiles.includes(i)) {
+        if(!(gameState.mineIndices || []).includes(i) && !gameState.revealedTiles.includes(i)) {
             const t = tiles[i];
             t.style.opacity = '0.4';
         }
@@ -263,7 +320,6 @@ function endGame(won, cashedOut = false) {
     gameState.gamesPlayed++;
     
     if(won) {
-        if(typeof addToBalance === 'function') addToBalance(gameState.potentialWin);
         gameState.wins++;
         let profit = gameState.potentialWin - gameState.currentBet;
         if(gameState.potentialWin > gameState.highestWin) gameState.highestWin = gameState.potentialWin;
@@ -277,6 +333,9 @@ function endGame(won, cashedOut = false) {
         addHistory(false, gameState.currentBet, 0);
     }
     
+    if (balanceEl && newBalance !== undefined) balanceEl.textContent = newBalance.toFixed(2);
+    if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+
     saveStats();
     updateUI();
     

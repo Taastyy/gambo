@@ -412,7 +412,7 @@
         }
 
         // Lotto spielen
-        function playLotto() {
+        async function playLotto() {
             if (gameState !== 'selecting') return;
             
             if (selectedNumbers.length !== 6) {
@@ -427,36 +427,38 @@
             
             const betInput = document.getElementById('bet-input');
             const bet = parseFloat(betInput.value);
-            const balance = getBalance();
             
             if (bet <= 0) {
                 showMessage('Einsatz muss größer als 0 sein!', 'lose');
                 return;
             }
             
-            if (bet > balance) {
-                showMessage('Unzureichendes Guthaben!', 'lose');
-                return;
-            }
-            
-            // Wette abziehen
-            if (typeof deductFromBalance === 'function') {
-                deductFromBalance(bet).then((success) => {
-                    if (!success) {
-                        showMessage('Unzureichendes Guthaben!', 'lose');
-                        return;
-                    }
-                    startDrawAnimation();
+            try {
+                const token = localStorage.getItem('casinoToken') || '';
+                const res = await fetch('/api/lotto/play', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ amount: bet, selectedNumbers, selectedSuperNumber })
                 });
-            } else {
-                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
-                updateBalanceDisplay();
-                startDrawAnimation();
+                const data = await res.json();
+                
+                if (!data.success) {
+                    showMessage(data.error || 'Server Fehler!', 'error');
+                    return;
+                }
+
+                // Balance will be visually deducted now, and correct after animation
+                if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance - data.wonAmount);
+                if (document.getElementById('stats-balance')) document.getElementById('stats-balance').textContent = Math.round(data.newBalance - data.wonAmount);
+                
+                startDrawAnimation(data);
+            } catch(e) {
+                showMessage('Netzwerkfehler', 'error');
             }
         }
 
         // Ziehungs-Animation starten
-        function startDrawAnimation() {
+        function startDrawAnimation(serverData) {
             gameState = 'drawing';
             
             // UI deaktivieren
@@ -464,18 +466,6 @@
             document.getElementById('quick-pick-btn').disabled = true;
             document.getElementById('clear-btn').disabled = true;
             document.getElementById('bet-input').disabled = true;
-            
-            // Zufällige Gewinnzahlen generieren
-            const winningNumbers = [];
-            while (winningNumbers.length < 6) {
-                const num = Math.floor(Math.random() * 49) + 1;
-                if (!winningNumbers.includes(num)) {
-                    winningNumbers.push(num);
-                }
-            }
-            winningNumbers.sort((a, b) => a - b);
-            
-            const winningSuper = Math.floor(Math.random() * 10) + 1;
             
             showMessage('Ziehe Gewinnzahlen...', 'running');
             
@@ -505,13 +495,13 @@
                 
                 if (drawCount >= 15) {
                     clearInterval(drawInterval);
-                    finalizeDraw(winningNumbers, winningSuper);
+                    finalizeDraw(serverData.winningNumbers, serverData.winningSuper, serverData);
                 }
             }, 200);
         }
 
         // Ziehung finalisieren
-        function finalizeDraw(winningNumbers, winningSuper) {
+        function finalizeDraw(winningNumbers, winningSuper, serverData) {
             const bet = parseFloat(document.getElementById('bet-input').value);
             
             // Zeige Spielerzahlen (bleiben oben)
@@ -535,39 +525,21 @@
             const winningSuperContainer = document.getElementById('winning-super');
             winningSuperContainer.innerHTML = `<span class="selected-ball winning ${selectedSuperNumber === winningSuper ? 'matched' : ''}">${winningSuper}</span>`;
             
-            // Treffer berechnen
-            const mainMatches = selectedNumbers.filter(n => winningNumbers.includes(n)).length;
-            const superMatch = selectedSuperNumber === winningSuper;
-            
             // Gewinn bestimmen
-            let prize = 0;
+            const prize = serverData.wonAmount;
+            const mainMatches = serverData.mainMatches;
+            const superMatch = serverData.superMatch;
+            
             let prizeName = '';
             
-            if (mainMatches === 6 && superMatch) {
-                prize = bet * multipliers['6+1'];
-                prizeName = 'JACKPOT! 6 Richtige + Zusatzzahl';
-            } else if (mainMatches === 6) {
-                prize = bet * multipliers['6'];
-                prizeName = '6 Richtige';
-            } else if (mainMatches === 5 && superMatch) {
-                prize = bet * multipliers['5+1'];
-                prizeName = '5 Richtige + Zusatzzahl';
-            } else if (mainMatches === 5) {
-                prize = bet * multipliers['5'];
-                prizeName = '5 Richtige';
-            } else if (mainMatches === 4 && superMatch) {
-                prize = bet * multipliers['4+1'];
-                prizeName = '4 Richtige + Zusatzzahl';
-            } else if (mainMatches === 4) {
-                prize = bet * multipliers['4'];
-                prizeName = '4 Richtige';
-            } else if (mainMatches === 3 && superMatch) {
-                prize = bet * multipliers['3+1'];
-                prizeName = '3 Richtige + Zusatzzahl';
-            } else if (mainMatches === 3) {
-                prize = bet * multipliers['3'];
-                prizeName = '3 Richtige';
-            }
+            if (mainMatches === 6 && superMatch) prizeName = 'JACKPOT! 6 Richtige + Zusatzzahl';
+            else if (mainMatches === 6) prizeName = '6 Richtige';
+            else if (mainMatches === 5 && superMatch) prizeName = '5 Richtige + Zusatzzahl';
+            else if (mainMatches === 5) prizeName = '5 Richtige';
+            else if (mainMatches === 4 && superMatch) prizeName = '4 Richtige + Zusatzzahl';
+            else if (mainMatches === 4) prizeName = '4 Richtige';
+            else if (mainMatches === 3 && superMatch) prizeName = '3 Richtige + Zusatzzahl';
+            else if (mainMatches === 3) prizeName = '3 Richtige';
             
             // Statistiken aktualisieren
             stats.totalGames++;
@@ -579,16 +551,10 @@
                     stats.highestWin = prize;
                 }
                 
-                // Gewinn zur Balance hinzufügen
-                if (typeof addToBalance === 'function') {
-                    addToBalance(prize).then(() => {
-                        updateBalanceDisplay();
-                    });
-                } else {
-                    const balance = getBalance();
-                    const newBalance = balance + prize;
-                    localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
-                    updateBalanceDisplay();
+                if (serverData && document.getElementById('balance')) {
+                    document.getElementById('balance').textContent = Math.round(serverData.newBalance);
+                    document.getElementById('stats-balance').textContent = Math.round(serverData.newBalance);
+                    if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
                 }
                 
                 showMessage(`${prizeName}! Gewonnen: ${formatNumber(prize)}`, 'win');
@@ -596,7 +562,11 @@
                 stats.losses++;
                 stats.totalLosses += bet;
                 
-                updateBalanceDisplay();
+                if (serverData && document.getElementById('balance')) {
+                    document.getElementById('balance').textContent = Math.round(serverData.newBalance);
+                    document.getElementById('stats-balance').textContent = Math.round(serverData.newBalance);
+                    if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+                }
                 
                 showMessage(`Kein Gewinn. ${mainMatches} Richtige`, 'lose');
             }

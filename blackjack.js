@@ -435,7 +435,7 @@ function renderCards() {
     // Dealer cards
     dealerCardsEl.innerHTML = '';
     gameState.dealerHand.forEach((card, index) => {
-        const isHidden = index === 1 && gameState.state === GAME_STATE.PLAYER_TURN;
+        const isHidden = card.hidden || (index === 1 && gameState.state === GAME_STATE.PLAYER_TURN);
         dealerCardsEl.appendChild(createCardElement(card, isHidden));
     });
     
@@ -908,506 +908,166 @@ function changeBet(amount) {
  * Starts a new game and deals the cards.
  */
 async function dealGame() {
-    // If game is already in progress or over, reset first
     if (gameState.state === GAME_STATE.PLAYER_TURN || 
         gameState.state === GAME_STATE.DEALER_TURN || 
         gameState.state === GAME_STATE.GAME_OVER) {
         resetGame();
     }
     
-    // Force game state to WAITING to ensure deal button is enabled
     gameState.state = GAME_STATE.WAITING;
+    if (dealBtn) dealBtn.disabled = true;
     
-    // Force enable deal button
-    if (dealBtn) {
-        dealBtn.disabled = false;
-    }
-    
-    if (getBalanceSync() < gameState.currentBet) {
-        showMessage('Not enough balance! Lower your bet or restart.', 'lose');
-        return;
-    }
-    
-    // Reset split variables
-    gameState.splitBets = [];
-    gameState.currentHandIndex = 0;
-    
-    // Reset insurance and surrender
-    gameState.insuranceOffered = false;
-    gameState.insuranceTaken = false;
-    gameState.surrendered = false;
-    
-    // Deduct bet from balance
-    deductFromBalance(gameState.currentBet);
-    gameState.totalWagered += gameState.currentBet;
-    
-    // Create shoe with multiple decks
-    gameState.deck = createShoe(gameState.deckCount);
-    
-    // Deal cards
-    gameState.playerHands = [[drawCard(), drawCard()]];
-    gameState.dealerHand = [drawCard(), drawCard()];
-    
-    // Set game state
-    gameState.state = GAME_STATE.PLAYER_TURN;
-    gameState.gamesPlayed++;
-    
-    // Reset win streak for new game
-    gameState.currentStreak = 0;
-    
-    // Check for blackjack
-    if (isBlackjack(gameState.playerHands[0])) {
-        handleBlackjack();
-    } else {
-        // Check if dealer has blackjack (show insurance option first)
-        const dealerUpCard = gameState.dealerHand[0];
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/blackjack/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ bet: gameState.currentBet })
+        });
+        const data = await res.json();
         
-        // Show message about insurance BEFORE setting insuranceOffered
-        if (dealerUpCard.value === 'A') {
-            showMessage('Dealer shows Ace! Insurance available.', '');
+        if (!data.success) {
+            showMessage(data.error || 'Server error', 'error');
+            if (dealBtn) dealBtn.disabled = false;
+            return;
+        }
+
+        gameState.splitBets = [];
+        gameState.currentHandIndex = 0;
+        gameState.insuranceOffered = false;
+        gameState.insuranceTaken = false;
+        gameState.surrendered = false;
+        gameState.totalWagered += gameState.currentBet;
+        gameState.gamesPlayed++;
+
+        applyServerState(data.gameState);
+        if (data.balance !== undefined) {
+            if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.balance).toLocaleString();
+            if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+        }
+
+        if (data.gameState.state === 'game_over') {
+            handleServerGameOver(data.gameState);
         } else {
-            showMessage('Your turn! Hit (H) or Stand (S)?', '');
+            const dealerUpCard = gameState.dealerHand[0];
+            if (dealerUpCard.value === 'A') {
+                showMessage('Dealer shows Ace! Insurance available.', '');
+                gameState.insuranceOffered = true;
+            } else {
+                showMessage('Your turn! Hit (H) or Stand (S)?', '');
+            }
         }
-        
-        // Update UI to show buttons
-        updateUI();
-        renderCards();
-        
-        // Set insurance offered AFTER UI update (so button can show)
-        if (dealerUpCard.value === 'A') {
-            gameState.insuranceOffered = true;
-            // Force update again to show button
-            updateButtonStates();
-        }
+    } catch(e) {
+        showMessage('Network error', 'error');
+        if (dealBtn) dealBtn.disabled = false;
     }
 }
 
 /**
  * Handles the blackjack case for the player.
  */
-function handleBlackjack() {
-    const dealerHasBlackjack = isBlackjack(gameState.dealerHand);
+function handleServerGameOver(serverData) {
+    const totalPayout = serverData.payouts || 0;
+    const profit = totalPayout - (serverData.bets ? serverData.bets.reduce((a,b)=>a+b,0) : gameState.currentBet);
     
-    // First, handle insurance if taken
-    if (gameState.insuranceTaken) {
-        if (dealerHasBlackjack) {
-            // Insurance pays 2:1, main bet pushes
-            const insuranceWin = gameState.currentBet; // 2:1 on half bet = full bet back
-            addToBalance(insuranceWin);
-            addToBalance(gameState.currentBet); // Push - get bet back
-            gameState.pushes++;
-            gameState.currentStreak = 0;
-            showMessage('Both have Blackjack! Insurance wins! Push!', 'push');
-            addToHistory('Push + Insurance', 'push');
-        } else {
-            // Insurance loses, but blackjack wins
-            const winAmount = Math.floor(gameState.currentBet * 2.5);
-            addToBalance(winAmount);
-            gameState.wins++;
-            gameState.blackjacks++;
-            gameState.currentStreak++;
-            if (gameState.currentStreak > gameState.bestStreak) {
-                gameState.bestStreak = gameState.currentStreak;
-            }
-            if (winAmount > gameState.highestWin) {
-                gameState.highestWin = winAmount;
-            }
-            showMessage('BLACKJACK! Insurance lost. You win 3:2!', 'blackjack');
-            addToHistory(`Win +${winAmount}`, 'win');
-        }
+    if (totalPayout > (serverData.bets ? serverData.bets.reduce((a,b)=>a+b,0) : gameState.currentBet)) {
+        gameState.wins++;
+        gameState.currentStreak++;
+        if (totalPayout > gameState.highestWin) gameState.highestWin = totalPayout;
+        showMessage(`Game Over! You won ${totalPayout}!`, 'win');
+        addToHistory(`Win +${totalPayout}`, 'win');
+    } else if (totalPayout === 0) {
+        gameState.losses++;
+        gameState.currentStreak = 0;
+        showMessage('Game Over! You lost.', 'lose');
+        addToHistory(`Loss -${gameState.currentBet}`, 'lose');
     } else {
-        if (dealerHasBlackjack) {
-            // Both have blackjack - push
-            addToBalance(gameState.currentBet);
-            gameState.pushes++;
-            gameState.currentStreak = 0;
-            showMessage('Both have Blackjack! Push!', 'push');
-            addToHistory('Push - Both Blackjack', 'push');
-        } else {
-            // Player wins with blackjack (3:2 payout)
-            const winAmount = Math.floor(gameState.currentBet * 2.5);
-            addToBalance(winAmount);
-            gameState.wins++;
-            gameState.blackjacks++;
-            gameState.currentStreak++;
-            if (gameState.currentStreak > gameState.bestStreak) {
-                gameState.bestStreak = gameState.currentStreak;
-            }
-            if (winAmount > gameState.highestWin) {
-                gameState.highestWin = winAmount;
-            }
-            showMessage('BLACKJACK! You win 3:2!', 'blackjack');
-            addToHistory(`Win +${winAmount}`, 'win');
-        }
+        gameState.pushes++;
+        gameState.currentStreak = 0;
+        showMessage('Push! Bet returned.', 'push');
+        addToHistory('Push', 'push');
     }
-    
-    gameState.state = GAME_STATE.GAME_OVER;
-    saveStats(); // Save stats
+    saveStats();
     updateUI();
     renderCards();
 }
 
-/**
- * Player takes insurance against dealer blackjack.
- */
-async function takeInsurance() {
+function applyServerState(serverData) {
+    gameState.playerHands = serverData.playerHands || [];
+    gameState.dealerHand = serverData.dealerHand || [];
+    gameState.currentHandIndex = serverData.currentHandIndex || 0;
+    
+    if (serverData.state === 'player_turn') gameState.state = GAME_STATE.PLAYER_TURN;
+    else if (serverData.state === 'dealer_turn') gameState.state = GAME_STATE.DEALER_TURN;
+    else if (serverData.state === 'game_over') gameState.state = GAME_STATE.GAME_OVER;
+
+    renderCards();
+    updateUI();
+}
+
+async function sendAction(actionStr) {
     if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    if (gameState.insuranceOffered && !gameState.insuranceTaken) {
-        const insuranceCost = gameState.currentBet / 2;
+    
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/blackjack/action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ action: actionStr })
+        });
+        const data = await res.json();
         
-        if (getBalanceSync() < insuranceCost) {
-            showMessage('Not enough balance for insurance!', 'lose');
+        if (!data.success) {
+            showMessage(data.error || 'Server error', 'error');
             return;
         }
-        
-        // Deduct insurance cost
-        deductFromBalance(insuranceCost);
-        gameState.insuranceTaken = true;
-        
-        showMessage('Insurance taken!', '');
-        updateUI();
-        
-        // Check if dealer has blackjack
-        if (isBlackjack(gameState.dealerHand)) {
-            // Reveal hole card and handle result
-            renderCards();
-            setTimeout(() => {
-                handleBlackjack();
-            }, 500);
-        } else {
-            // Continue game
-            showMessage('Dealer does not have Blackjack. Your turn!', '');
+
+        applyServerState(data.gameState);
+        if (data.balance !== undefined) {
+             if (document.getElementById('balance-display')) document.getElementById('balance-display').textContent = `Balance: ${Math.round(data.balance)}`;
+             if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.balance).toLocaleString();
+             if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
         }
+
+        if (data.gameState.state === 'game_over') {
+            handleServerGameOver(data.gameState);
+        } else if (data.gameState.state === 'player_turn') {
+            const currentHand = gameState.playerHands[gameState.currentHandIndex];
+            const score = calculateHandValue(currentHand).score;
+            showMessage(`Hand ${gameState.currentHandIndex + 1}: Score ${score}. Hit (H) or Stand (S)?`, '');
+        }
+    } catch(e) {
+        showMessage('Network error', 'error');
     }
 }
 
-/**
- * Player surrenders and loses half their bet.
- */
-function surrenderGame() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
+function handleServerGameOver(serverData) {
+    const totalPayout = serverData.payouts || 0;
+    const initialBets = serverData.bets ? serverData.bets.reduce((a,b)=>a+b,0) : gameState.currentBet;
     
-    // Can only surrender on first hand with 2 cards
-    if (gameState.playerHands.length !== 1) return;
-    
-    const hand = gameState.playerHands[0];
-    if (hand.length !== 2) return;
-    
-    if (gameState.surrendered) return;
-    
-    // Surrender - lose half the bet
-    const surrenderAmount = gameState.currentBet / 2;
-    addToBalance(surrenderAmount);
-    
-    gameState.surrendered = true;
-    gameState.losses++;
-    gameState.currentStreak = 0;
-    
-    showMessage('Surrendered! Half bet returned.', 'lose');
-    addToHistory(`Surrender -${surrenderAmount}`, 'lose');
-    
+    if (totalPayout > initialBets) {
+        gameState.wins++;
+        gameState.currentStreak++;
+        if (totalPayout > gameState.highestWin) gameState.highestWin = totalPayout;
+        showMessage(`Game Over! You won ${totalPayout}!`, 'win');
+        addToHistory(`Win +${totalPayout}`, 'win');
+    } else if (totalPayout === 0) {
+        gameState.losses++;
+        gameState.currentStreak = 0;
+        showMessage('Game Over! You lost.', 'lose');
+        addToHistory(`Loss -${initialBets}`, 'lose');
+    } else {
+        gameState.pushes++;
+        gameState.currentStreak = 0;
+        showMessage('Push! Bet returned.', 'push');
+        addToHistory('Push', 'push');
+    }
     gameState.state = GAME_STATE.GAME_OVER;
     saveStats();
     updateUI();
-}
-
-/**
- * Allows the player to draw another card.
- */
-function hitCard() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    
-    const currentHand = gameState.playerHands[gameState.currentHandIndex];
-    const card = drawCard();
-    currentHand.push(card);
     renderCards();
-    
-    const { score } = calculateHandValue(currentHand);
-    
-    if (score > 21) {
-        // Player busted
-        gameState.playerBusts++;
-        gameState.currentStreak = 0;
-        finishCurrentHand();
-    } else if (score === 21) {
-        // Auto stand at 21
-        standGame();
-    } else {
-        showMessage(`Score: ${score}. Hit (H) or Stand (S)?`, '');
-        updateUI(); // Refresh strategy helper
-    }
 }
 
-/**
- * Finishes the current hand and moves to the next.
- */
-function finishCurrentHand() {
-    const currentHand = gameState.playerHands[gameState.currentHandIndex];
-    const { score } = calculateHandValue(currentHand);
-    
-    if (score > 21) {
-        showMessage(`Hand ${gameState.currentHandIndex + 1}: Bust!`, 'bust');
-    }
-    
-    // Move to next hand
-    gameState.currentHandIndex++;
-    
-    if (gameState.currentHandIndex >= gameState.playerHands.length) {
-        // All hands played
-        if (score > 21) {
-            // Player busted - game over immediately
-            gameState.state = GAME_STATE.GAME_OVER;
-            gameState.losses++;
-            saveStats();
-            updateUI();
-            updateButtonStates();
-            renderCards();
-            showMessage('Bust! You lose!', 'lose');
-        } else {
-            // No bust - dealer takes turn
-            gameState.state = GAME_STATE.DEALER_TURN;
-            updateButtonStates();
-            renderCards();
-            dealerPlay();
-        }
-    } else {
-        // Play next hand
-        updateButtonStates();
-        renderCards();
-        updateUI(); // Refresh strategy helper
-        const nextHand = gameState.playerHands[gameState.currentHandIndex];
-        const nextScore = calculateHandValue(nextHand).score;
-        showMessage(`Hand ${gameState.currentHandIndex + 1}: Score ${nextScore}. Hit (H) or Stand (S)?`, '');
-    }
-}
-
-/**
- * Player stands and moves to next hand or dealer takes turn.
- */
-function standGame() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    
-    // If there are more hands, move to next hand
-    if (gameState.currentHandIndex < gameState.playerHands.length - 1) {
-        gameState.currentHandIndex++;
-        updateButtonStates();
-        renderCards();
-        updateUI(); // Refresh strategy helper
-        const nextHand = gameState.playerHands[gameState.currentHandIndex];
-        const nextScore = calculateHandValue(nextHand).score;
-        showMessage(`Hand ${gameState.currentHandIndex + 1}: Score ${nextScore}. Hit (H) or Stand (S)?`, '');
-    } else {
-        // All hands played - dealer takes turn
-        gameState.state = GAME_STATE.DEALER_TURN;
-        updateButtonStates();
-        renderCards();
-        dealerPlay();
-    }
-}
-
-/**
- * Has the dealer play.
- * Dealer must stand on 17 or higher.
- */
-function dealerPlay() {
-    const dealerTurn = () => {
-        const { score } = calculateHandValue(gameState.dealerHand);
-        
-        if (score < 17) {
-            // Dealer draws a card
-            setTimeout(() => {
-                gameState.dealerHand.push(drawCard());
-                renderCards();
-                dealerTurn();
-            }, 800);
-        } else {
-            // Dealer has 17 or more - game ended
-            determineWinner();
-        }
-    };
-    
-    setTimeout(dealerTurn, 500);
-}
-
-/**
- * Determines the winner for all player hands.
- */
-function determineWinner() {
-    const dealerScore = calculateHandValue(gameState.dealerHand).score;
-    let totalWinnings = 0;
-    let handsWon = 0;
-    let handsLost = 0;
-    let handsPush = 0;
-    
-    // Dealer bust tracking
-    if (dealerScore > 21) {
-        gameState.dealerBusts++;
-    }
-    
-    // Compare each player hand against dealer
-    gameState.playerHands.forEach((hand, index) => {
-        const playerScore = calculateHandValue(hand).score;
-        const bet = gameState.splitBets[index] || gameState.currentBet;
-        
-        if (dealerScore > 21) {
-            // Dealer busted - player wins
-            addToBalance(bet * 2);
-            gameState.wins++;
-            totalWinnings += bet;
-            handsWon++;
-        } else if (playerScore > dealerScore) {
-            // Player has higher score
-            addToBalance(bet * 2);
-            gameState.wins++;
-            totalWinnings += bet;
-            handsWon++;
-        } else if (dealerScore > playerScore) {
-            // Dealer has higher score
-            gameState.losses++;
-            handsLost++;
-        } else {
-            // Push
-            addToBalance(bet);
-            gameState.pushes++;
-            handsPush++;
-        }
-    });
-    
-    // Update win streak
-    if (handsWon > 0) {
-        gameState.currentStreak++;
-        if (gameState.currentStreak > gameState.bestStreak) {
-            gameState.bestStreak = gameState.currentStreak;
-        }
-    } else if (handsLost > 0) {
-        gameState.currentStreak = 0;
-    }
-    
-    // Track highest win
-    if (totalWinnings > gameState.highestWin) {
-        gameState.highestWin = totalWinnings;
-    }
-    
-    // Message based on result
-    if (handsWon === gameState.playerHands.length && handsWon > 0) {
-        showMessage(`You win all ${handsWon} hands!`, 'win');
-        addToHistory(`Win +${totalWinnings}`, 'win');
-    } else if (handsLost === gameState.playerHands.length && handsLost > 0) {
-        showMessage('You lose all hands!', 'lose');
-        addToHistory(`Loss -${gameState.currentBet}`, 'lose');
-    } else {
-        showMessage(`Result: ${handsWon} win, ${handsLost} loss, ${handsPush} push`, '');
-    }
-    
-    gameState.state = GAME_STATE.GAME_OVER;
-    saveStats(); // Save stats
-    updateUI();
-    updateButtonStates();
-}
-
-/**
- * Doubles the bet and draws exactly one more card.
- */
-async function doubleBet() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    
-    if (getBalanceSync() < gameState.currentBet) return;
-    
-    const currentHand = gameState.playerHands[gameState.currentHandIndex];
-    if (currentHand.length !== 2) return;
-    
-    // Double the bet
-    deductFromBalance(gameState.currentBet);
-    gameState.currentBet *= 2;
-    gameState.totalWagered += gameState.currentBet / 2;
-    gameState.doubles++;
-    
-    // Update split bets if split
-    if (gameState.splitBets.length > 0) {
-        gameState.splitBets[gameState.currentHandIndex] = gameState.currentBet;
-    }
-    
-    // Draw one card
-    const card = drawCard();
-    currentHand.push(card);
-    
-    // Show and calculate result
-    renderCards();
-    updateUI();
-    
-    const { score } = calculateHandValue(currentHand);
-    
-    if (score > 21) {
-        // Busted - move to next hand
-        gameState.playerBusts++;
-        gameState.currentStreak = 0;
-        finishCurrentHand();
-    } else {
-        // Auto move to next hand
-        standGame();
-    }
-}
-
-/**
- * Splits the current hand into two separate hands.
- * Split is possible when both cards have the same value.
- * Supports re-splitting up to maxSplits times.
- */
-async function splitHand() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    if (gameState.playerHands.length >= gameState.maxSplits) return;
-    
-    if (getBalanceSync() < gameState.currentBet) return;
-    
-    const currentHand = gameState.playerHands[gameState.currentHandIndex];
-    if (currentHand.length !== 2) return;
-    
-    // Check if split is possible
-    const firstValue = currentHand[0].value;
-    const secondValue = currentHand[1].value;
-    
-    // For aces or same values
-    if (firstValue !== secondValue && firstValue !== 'A') return;
-    
-    // Track splits
-    gameState.splits++;
-    
-    // Deduct second bet from balance
-    deductFromBalance(gameState.currentBet);
-    gameState.totalWagered += gameState.currentBet;
-    
-    // Create split bets array
-    const newSplitBets = [...gameState.splitBets];
-    if (gameState.currentHandIndex >= newSplitBets.length) {
-        // Add new bet for this hand
-        newSplitBets[gameState.currentHandIndex] = gameState.currentBet;
-    }
-    newSplitBets.push(gameState.currentBet);
-    gameState.splitBets = newSplitBets;
-    
-    // Create two new hands
-    const hand1 = [currentHand[0], drawCard()];
-    const hand2 = [currentHand[1], drawCard()];
-    
-    // Insert new hand after current hand
-    const newHands = [...gameState.playerHands];
-    newHands.splice(gameState.currentHandIndex + 1, 0, hand2);
-    newHands[gameState.currentHandIndex] = hand1;
-    
-    gameState.playerHands = newHands;
-    
-    // Update UI
-    updateUI();
-    renderCards();
-    
-    const firstHand = gameState.playerHands[gameState.currentHandIndex];
-    const { score } = calculateHandValue(firstHand);
-    showMessage(`Hand ${gameState.currentHandIndex + 1}: Score ${score}. Hit (H) or Stand (S)?`, '');
-}
-
-/**
- * Resets the game and clears the hands.
- */
 function resetGame() {
     gameState.playerHands = [];
     gameState.dealerHand = [];
@@ -1417,48 +1077,21 @@ function resetGame() {
     gameState.insuranceOffered = false;
     gameState.insuranceTaken = false;
     gameState.surrendered = false;
-    
     renderCards();
     updateUI();
-    
-    // Hide insurance and surrender buttons
     const insuranceBtn = document.getElementById('insurance-btn');
     const surrenderBtn = document.getElementById('surrender-btn');
     if (insuranceBtn) insuranceBtn.style.display = 'none';
     if (surrenderBtn) surrenderBtn.style.display = 'none';
-    
     showMessage('New game! Place your bet.', '');
 }
 
-/**
- * Player surrenders and loses half their bet.
- */
-function surrenderGame() {
-    if (gameState.state !== GAME_STATE.PLAYER_TURN) return;
-    
-    // Can only surrender on first hand with 2 cards
-    if (gameState.playerHands.length !== 1) return;
-    
-    const hand = gameState.playerHands[0];
-    if (hand.length !== 2) return;
-    
-    if (gameState.surrendered) return;
-    
-    // Surrender - lose half the bet
-    const surrenderAmount = gameState.currentBet / 2;
-    addToBalance(surrenderAmount);
-    
-    gameState.surrendered = true;
-    gameState.losses++;
-    gameState.currentStreak = 0;
-    
-    showMessage('Surrendered! Half bet returned.', 'lose');
-    addToHistory(`Surrender -${surrenderAmount}`, 'lose');
-    
-    gameState.state = GAME_STATE.GAME_OVER;
-    saveStats();
-    updateUI();
-}
+async function takeInsurance() { sendAction('insurance'); }
+async function hitCard() { sendAction('hit'); }
+async function standGame() { sendAction('stand'); }
+async function doubleBet() { sendAction('double'); }
+async function splitHand() { sendAction('split'); }
+async function surrenderGame() { sendAction('surrender'); }
 
 
 /**

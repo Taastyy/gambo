@@ -312,26 +312,28 @@
             multiplierEl.textContent = formatMultiplier(currentMultiplier);
             updatePotentialWin();
 
-            // Auto Cashout check
-            if (currentMultiplier >= autoCashoutTarget) {
-                cashOut();
-                return;
-            }
+            // The animation stops at crashPoint (if lost) or autoCashout (if win)
+            const targetStop = window.serverIsWin ? window.serverAutoCashout : window.serverCrashPoint;
 
-            if (currentMultiplier >= crashPoint) {
-                crashGame();
+            if (currentMultiplier >= targetStop) {
+                currentMultiplier = targetStop;
+                multiplierEl.textContent = formatMultiplier(currentMultiplier);
+                
+                if (window.serverIsWin) cashOut();
+                else crashGame();
             } else {
                 animationId = requestAnimationFrame(updateMultiplier);
             }
         }
 
         // Spiel starten
-        function startGame() {
+        async function startGame() {
             if (gameState !== 'idle') return;
 
             const betInput = document.getElementById('bet-input');
             const bet = parseFloat(betInput.value);
-            const balance = getBalance();
+            let balance = 0;
+            if (typeof getBalanceSync === 'function') balance = getBalanceSync();
 
             if (bet <= 0) {
                 showMessage('Wette muss größer als 0 sein!', 'lose');
@@ -343,43 +345,63 @@
                 return;
             }
 
-            // Wette abziehen mit balance.js
-            if (typeof deductFromBalance === 'function') {
-                deductFromBalance(bet).then((success) => {
-                    if (!success) {
-                        showMessage('Unzureichendes Guthaben!', 'lose');
-                        return;
-                    }
-                    startGameAfterBet(bet);
+            // Disable UI
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('bet-input').disabled = true;
+            document.getElementById('auto-cashout-input').disabled = true;
+            showMessage('Warten auf Server...', 'running');
+
+            try {
+                const token = localStorage.getItem('casinoToken') || '';
+                const res = await fetch('/api/crash/play', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ bet, autoCashout: autoCashoutTarget })
                 });
-            } else {
-                // Fallback
-                localStorage.setItem('casinoBalance', JSON.stringify({ balance: balance - bet, updatedAt: Date.now() }));
-                updateBalanceDisplay();
-                startGameAfterBet(bet);
+                const data = await res.json();
+                
+                if (!data.success) {
+                    showMessage(data.error || 'Fehler beim Starten', 'lose');
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('bet-input').disabled = false;
+                    document.getElementById('auto-cashout-input').disabled = false;
+                    return;
+                }
+
+                // Immediately deduct balance locally so it looks responsive
+                if (document.getElementById('balance')) document.getElementById('balance').textContent = formatNumber(data.newBalance - data.wonAmount);
+                startGameAfterBet(bet, data);
+            } catch (err) {
+                showMessage('Netzwerkfehler', 'lose');
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('bet-input').disabled = false;
+                document.getElementById('auto-cashout-input').disabled = false;
             }
         }
 
         // Spiel nach Wetteabzug starten
-        function startGameAfterBet(bet) {
-            // Spiel zurücksetzen
+        function startGameAfterBet(bet, data) {
             currentBet = bet;
             currentMultiplier = 1.00;
-            crashPoint = calculateCrashPoint();
+            
+            // Storing server data globally for the animation frame
+            window.serverCrashPoint = data.crashPoint;
+            window.serverIsWin = data.isWin;
+            window.serverWonAmount = data.wonAmount;
+            window.serverNewBalance = data.newBalance;
+            window.serverAutoCashout = autoCashoutTarget;
+
             gameState = 'running';
             lastTimestamp = 0;
 
-            // UI aktualisieren
             document.getElementById('multiplier').textContent = '1.00x';
             document.getElementById('multiplier').className = 'multiplier-value running';
             document.getElementById('start-btn').disabled = true;
-            document.getElementById('cashout-btn').disabled = false;
+            document.getElementById('cashout-btn').disabled = true; // Manual cash out disabled to ensure fairness
             document.getElementById('bet-input').disabled = true;
             updateBetDisplay();
 
             showMessage('Läuft...', 'running');
-
-            // Animation starten
             animationId = requestAnimationFrame(updateMultiplier);
         }
 
@@ -392,48 +414,34 @@
                 animationId = null;
             }
 
-            const winnings = Math.floor(currentBet * currentMultiplier);
-            
-            // Use balance.js functions
-            if (typeof addToBalance === 'function') {
-                addToBalance(winnings).then(() => {
-                    updateBalanceDisplay();
-                });
-            } else {
-                const balance = getBalance();
-                const newBalance = balance + winnings;
-                localStorage.setItem('casinoBalance', JSON.stringify({ balance: newBalance, updatedAt: Date.now() }));
-                updateBalanceDisplay();
-            }
+            const winnings = window.serverWonAmount || Math.floor(currentBet * currentMultiplier);
 
             // Statistiken aktualisieren
             stats.totalGames++;
             stats.wins++;
             stats.totalWinnings += winnings;
-            if (currentMultiplier > stats.highestMultiplier) {
-                stats.highestMultiplier = currentMultiplier;
-            }
-            if (winnings > stats.highestWin) {
-                stats.highestWin = winnings;
-            }
+            if (currentMultiplier > stats.highestMultiplier) stats.highestMultiplier = currentMultiplier;
+            if (winnings > stats.highestWin) stats.highestWin = winnings;
             saveStats();
 
             gameState = 'cashedOut';
 
             // UI aktualisieren
             document.getElementById('multiplier').className = 'multiplier-value';
+            document.getElementById('auto-cashout-input').disabled = false;
             document.getElementById('cashout-btn').disabled = true;
             document.getElementById('start-btn').disabled = false;
             document.getElementById('bet-input').disabled = false;
             
             gameState = 'idle';
-            currentMultiplier = 1.00;
-            document.getElementById('multiplier').textContent = '1.00x';
+            document.getElementById('multiplier').textContent = formatMultiplier(currentMultiplier);
 
             const message = `Ausgezahlt bei ${formatMultiplier(currentMultiplier)} – Du hast ${formatNumber(winnings)} gewonnen!`;
             showMessage(message, 'win');
 
-            // Historie aktualisieren
+            if (document.getElementById('balance')) document.getElementById('balance').textContent = formatNumber(window.serverNewBalance);
+            if (typeof window.syncBalance === 'function') window.syncBalance();
+
             addToHistory(formatMultiplier(currentMultiplier), true);
             updateStatsDisplay();
         }
@@ -447,33 +455,29 @@
 
             gameState = 'crashed';
 
-            // Statistiken aktualisieren
             stats.totalGames++;
             stats.losses++;
             stats.totalLosses += currentBet;
-            if (crashPoint > stats.highestMultiplier) {
-                stats.highestMultiplier = crashPoint;
-            }
+            if (window.serverCrashPoint > stats.highestMultiplier) stats.highestMultiplier = window.serverCrashPoint;
             saveStats();
-
-            // Balance Anzeige aktualisieren (wichtig nach Crash)
-            updateBalanceDisplay();
 
             // UI aktualisieren
             document.getElementById('multiplier').className = 'multiplier-value';
+            document.getElementById('auto-cashout-input').disabled = false;
             document.getElementById('cashout-btn').disabled = true;
             document.getElementById('start-btn').disabled = false;
             document.getElementById('bet-input').disabled = false;
             
             gameState = 'idle';
-            currentMultiplier = 1.00;
-            document.getElementById('multiplier').textContent = '1.00x';
+            document.getElementById('multiplier').textContent = formatMultiplier(window.serverCrashPoint);
 
-            const message = `Gecrasht bei ${formatMultiplier(crashPoint)} – Du hast ${formatNumber(currentBet)} verloren!`;
+            const message = `Gecrasht bei ${formatMultiplier(window.serverCrashPoint)} – Du hast ${formatNumber(currentBet)} verloren!`;
             showMessage(message, 'lose');
 
-            // Historie aktualisieren
-            addToHistory(formatMultiplier(crashPoint), false);
+            if (document.getElementById('balance')) document.getElementById('balance').textContent = formatNumber(window.serverNewBalance);
+            if (typeof window.syncBalance === 'function') window.syncBalance();
+
+            addToHistory(formatMultiplier(window.serverCrashPoint), false);
             updateStatsDisplay();
         }
 

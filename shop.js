@@ -272,7 +272,7 @@
         });
     }
 
-    function handlePurchase(event) {
+    async function handlePurchase(event) {
         const btn = event.target;
         const itemId = btn.dataset.itemId;
         const item = SHOP_ITEMS.find(i => i.id === itemId);
@@ -280,58 +280,42 @@
 
         if (!item) return;
 
-        // Check if already owned
-        if (isItemOwned(itemId)) {
-            // Buy as consumable if already owned
-            if (typeof deductFromBalance !== 'function') {
-                showNotification('Fehler: Balance-System nicht geladen!', 'error');
+        try {
+            const token = localStorage.getItem('casinoToken') || '';
+            const res = await fetch('/api/shop/buy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ itemId, price })
+            });
+            const data = await res.json();
+
+            if (!data.success) {
+                showNotification(data.error || 'Fehler beim Kauf!', 'error');
                 return;
             }
 
-            if (currentBalance < price) {
-                showNotification('Nicht genug Geld!', 'error');
-                return;
+            if (isItemOwned(itemId)) {
+                // Buy as consumable
+                addToInventory(itemId, 1);
+            } else {
+                // First purchase
+                markItemAsOwned(itemId);
+                addToInventory(itemId, 1);
+                renderShop();
             }
 
-            const success = deductFromBalance(price);
-            if (!success) {
-                showNotification('Fehler beim Abziehen des Geldes!', 'error');
-                return;
+            // Update UI with returned balance
+            if (typeof updateBalanceDisplay === 'function') {
+                const balanceEl = document.getElementById('balance-amount');
+                if (balanceEl) balanceEl.textContent = Math.round(data.newBalance).toLocaleString();
+                if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
             }
-
-            addToInventory(itemId, 1);
-            updateBalanceDisplay();
+            
             renderInventory();
-            showNotification(`${item.icon} ${item.name} x1 gekauft!`, 'success');
-            return;
+            showNotification(`${item.icon} ${item.name} gekauft!`, 'success');
+        } catch (e) {
+            showNotification('Netzwerkfehler beim Kauf!', 'error');
         }
-
-        // First purchase - buy and mark as owned
-        if (typeof deductFromBalance !== 'function') {
-            showNotification('Fehler: Balance-System nicht geladen!', 'error');
-            return;
-        }
-
-        if (currentBalance < price) {
-            showNotification('Nicht genug Geld!', 'error');
-            return;
-        }
-
-        const success = deductFromBalance(price);
-        if (!success) {
-            showNotification('Fehler beim Abziehen des Geldes!', 'error');
-            return;
-        }
-
-        markItemAsOwned(itemId);
-        addToInventory(itemId, 1);
-
-        // Update UI
-        updateBalanceDisplay();
-        renderShop();
-        renderInventory();
-
-        showNotification(`${item.icon} ${item.name} gekauft!`, 'success');
     }
 
     // =====================================================

@@ -104,7 +104,7 @@ let currentBet = 100;
 let isSpinning = false;
 let isAutoroll = false;
 let autorollTimeout = null;
-let balance = 1000;
+
 let jackpot = 0;
 
 // Statistics
@@ -370,124 +370,101 @@ function saveJackpot() {
 async function spin() {
     if (isSpinning) return Promise.resolve();
 
-    // Get current balance
-    if (typeof getBalanceSync === 'function') {
-        balance = getBalanceSync();
-    }
+    let balance = 0;
+    if (typeof getBalanceSync === 'function') balance = getBalanceSync();
 
-    // Check if balance is sufficient
     if (balance < currentBet) {
         showMessage('Nicht genügend Guthaben!', 'error');
         return Promise.resolve();
     }
 
-    // Deduct bet
-    if (typeof deductFromBalance === 'function') {
-        const success = await deductFromBalance(currentBet);
-        if (!success) {
-            showMessage('Nicht genügend Guthaben!', 'error');
-            isSpinning = false;
-            spinBtn.disabled = false;
-            spinBtn.querySelector('.spin-text').textContent = 'DREHEN';
-            return Promise.resolve();
-        }
-    } else {
-        balance -= currentBet;
-    }
-
-    balance = getBalanceSync ? getBalanceSync() : balance;
-
-    // Update balance display
-    balanceEl.textContent = Math.round(balance);
-
     isSpinning = true;
     spinBtn.disabled = true;
     spinBtn.querySelector('.spin-text').textContent = 'DREHT...';
 
-    // Sound: spin start
     _ensureSnd();
     sfxSpinStart();
-
-    // Clear previous win highlights
     clearWinHighlights();
-
-    // Hide win display
     document.getElementById('win-display').classList.add('hidden');
 
-    // Generate final symbols
-    const finalSymbols = generateFinalSymbols();
+    let serverResult = null;
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/bandit/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ bet: currentBet })
+        });
+        serverResult = await res.json();
+    } catch (e) {
+        showMessage('Netzwerkfehler', 'error');
+        isSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.querySelector('.spin-text').textContent = 'DREHEN';
+        return Promise.resolve();
+    }
 
-    // Start spinning animation
+    if (!serverResult || !serverResult.success) {
+        showMessage(serverResult?.error || 'Server error', 'error');
+        isSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.querySelector('.spin-text').textContent = 'DREHEN';
+        return Promise.resolve();
+    }
+
+    const { symbols: finalSymbols, win, isJackpot, multiplier, wonAmount, winningIndices, newBalance } = serverResult;
+    
+    // balance is immediately deducted on server, we can reflect locally
+    if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(newBalance - wonAmount);
+
     const spinPromises = [];
-
     for (let i = 0; i < 5; i++) {
         reels[i].classList.add('spinning');
         spinPromises.push(spinReel(i, finalSymbols[i]));
     }
 
-    // Wait for all reels to stop
     await Promise.all(spinPromises);
 
-    // Check for win
-    const result = checkWin(finalSymbols);
-
-    // Update statistics
+    const result = { win, isJackpot, multiplier, symbols: finalSymbols, winningIndices };
     updateStats(result, currentBet);
 
-    // Show result
-    if (result.win) {
-        const winAmount = currentBet * result.multiplier;
-
-        // Add to balance
-        if (typeof addToBalance === 'function') {
-            await addToBalance(winAmount);
-        } else {
-            balance += winAmount;
-        }
-
-        balance = getBalanceSync ? getBalanceSync() : balance;
-
-        // Update jackpot
-        if (result.isJackpot) {
-            jackpot += winAmount;
+    if (win) {
+        if (isJackpot) {
+            jackpot += wonAmount;
             saveJackpot();
             document.getElementById('jackpot').textContent = jackpot.toLocaleString();
         }
 
-        // Highlight winning symbols
-        highlightWins(result.winningIndices);
+        highlightWins(winningIndices);
 
-        // Show win display + sound
-        if (result.isJackpot) { sfxJackpot(); }
-        else if (result.multiplier >= 50) { sfxBigWin(); }
-        else { sfxWin(); }
-        showWinDisplay(winAmount, result);
+        if (isJackpot) sfxJackpot();
+        else if (multiplier >= 50) sfxBigWin();
+        else sfxWin();
+        
+        showWinDisplay(wonAmount, result);
 
-        // Update balance display
-        balanceEl.textContent = Math.round(balance);
-
-        // Big win animation for wins over 50x
-        if (result.multiplier >= 50) {
-            await triggerBigWinAnimation(winAmount, result);
+        if (multiplier >= 50) {
+            await triggerBigWinAnimation(wonAmount, result);
         }
     } else {
-        sfxLose();  // Sound: loss
+        sfxLose();
         showMessage('❌ Kein Gewinn. Versuche es nochmal!', 'error');
     }
 
-    // Reset spin button
+    // sync final balance
+    if (typeof window.syncBalance === 'function') window.syncBalance();
+    if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(newBalance);
+
     isSpinning = false;
     spinBtn.disabled = false;
     spinBtn.querySelector('.spin-text').textContent = 'DREHEN';
-
-    // Update UI
+    
     updateUI();
-
-    // Add to history
     addToHistory(result, currentBet);
 
     return Promise.resolve();
 }
+
 
 // Spin individual reel
 async function spinReel(index, finalSymbol) {

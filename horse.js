@@ -16,7 +16,6 @@ const HORSES = [
 let currentBet = 100;
 let selectedHorse = null;
 let isRacing = false;
-let balance = 1000;
 
 // Statistics
 let stats = {
@@ -226,30 +225,30 @@ async function startRace() {
         return;
     }
 
-    // Get current balance
-    if (typeof getBalanceSync === 'function') {
-        balance = getBalanceSync();
-    }
+    const odds = selectedHorse.displayOdds || selectedHorse.odds;
 
-    // Check if balance is sufficient
-    if (balance < currentBet) {
-        showMessage('Nicht genügend Guthaben!', 'error');
-        return;
-    }
-
-    // Deduct bet
-    if (typeof deductFromBalance === 'function') {
-        const success = await deductFromBalance(currentBet);
-        if (!success) {
-            showMessage('Nicht genügend Guthaben!', 'error');
+    // Request from server
+    let data;
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/horse/play', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ amount: currentBet, odds })
+        });
+        data = await res.json();
+        
+        if (!data.success) {
+            showMessage(data.error || 'Server Fehler!', 'error');
             return;
         }
-    } else {
-        balance -= currentBet;
-    }
 
-    balance = getBalanceSync ? getBalanceSync() : balance;
-    balanceEl.textContent = Math.round(balance);
+        // Deduct balance instantly
+        if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance - data.wonAmount);
+    } catch(e) {
+        showMessage('Netzwerkfehler', 'error');
+        return;
+    }
 
     isRacing = true;
     raceBtn.disabled = true;
@@ -267,10 +266,10 @@ async function startRace() {
     await showCountdown();
 
     // Run the race
-    const winner = await runRace();
+    const winner = await runRace(data.isWin, selectedHorse.id);
 
     // Check result
-    await checkResult(winner);
+    await checkResult(winner, data);
 
     // Reset race button
     isRacing = false;
@@ -306,30 +305,19 @@ async function showCountdown() {
 }
 
 // Run the race animation
-async function runRace() {
+async function runRace(isWin, targetHorseId) {
     const horses = document.querySelectorAll('.horse');
     const trackWidth = document.getElementById('race-track').offsetWidth - 100;
 
     // Initialize positions
     const positions = Array(HORSES.length).fill(0);
 
-    // === BETTER WAY: Casino Probability Logic ===
-    // Pre-determine the winner mathematically based on exact odds to guarantee fairness
-    let totalProb = 0;
-    const probs = HORSES.map(h => {
-        const prob = 1 / h.odds; // Lower odds -> Higher probability
-        totalProb += prob;
-        return prob;
-    });
-    
-    let rand = Math.random() * totalProb;
-    let targetWinnerIndex = HORSES.length - 1;
-    for (let i = 0; i < HORSES.length; i++) {
-        if (rand < probs[i]) {
-            targetWinnerIndex = i;
-            break;
-        }
-        rand -= probs[i];
+    // Server-driven Logic
+    let targetWinnerIndex = HORSES.findIndex(h => h.id === targetHorseId);
+    if (!isWin) {
+        let otherHorses = HORSES.filter(h => h.id !== targetHorseId);
+        let randomLoser = otherHorses[Math.floor(Math.random() * otherHorses.length)];
+        targetWinnerIndex = HORSES.findIndex(h => h.id === randomLoser.id);
     }
     
     // Plan the race duration for each horse
@@ -415,50 +403,33 @@ async function runRace() {
 }
 
 // Check race result
-async function checkResult(winnerId) {
+async function checkResult(winnerId, serverData) {
     stats.totalRaces++;
 
     const statusEl = document.getElementById('race-status');
     const winnerHorse = HORSES.find(h => h.id === winnerId);
 
-    const won = winnerId === selectedHorse.id;
+    const won = serverData ? serverData.isWin : (winnerId === selectedHorse.id);
 
     if (won) {
-        // Calculate winnings
-        const odds = selectedHorse.displayOdds || selectedHorse.odds;
-        const winAmount = Math.floor(currentBet * odds);
-
-        // Add to balance
-        if (typeof addToBalance === 'function') {
-            await addToBalance(winAmount);
-        } else {
-            balance += winAmount;
-        }
-
-        balance = getBalanceSync ? getBalanceSync() : balance;
-
-        // Update stats
         stats.totalWins++;
-        stats.totalWinnings += winAmount;
+        stats.totalWinnings += serverData.wonAmount;
         stats.currentStreak++;
 
         if (stats.currentStreak > stats.maxStreak) {
             stats.maxStreak = stats.currentStreak;
         }
 
-        if (winAmount > stats.highestWin) {
-            stats.highestWin = winAmount;
+        if (serverData.wonAmount > stats.highestWin) {
+            stats.highestWin = serverData.wonAmount;
         }
 
         // Show win
         statusEl.textContent = `${winnerHorse.name} gewinnt! Du hast gewonnen!`;
-        showMessage(`Glückwunsch! +${winAmount.toLocaleString()}`, 'win');
+        showMessage(`Glückwunsch! +${serverData.wonAmount.toLocaleString()}`, 'win');
 
-        // Big win animation
-        await triggerWinAnimation(winAmount, winnerHorse);
+        await triggerWinAnimation(serverData.wonAmount, winnerHorse);
 
-        // Update balance display
-        balanceEl.textContent = Math.round(balance);
     } else {
         // Update stats
         stats.totalLosses += currentBet;
@@ -469,13 +440,16 @@ async function checkResult(winnerId) {
         showMessage(`Schade! -${currentBet.toLocaleString()}`, 'lose');
     }
 
+    if (serverData && document.getElementById('balance')) {
+        document.getElementById('balance').textContent = Math.round(serverData.newBalance);
+        if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+    }
+
     // ADJUST ODDS REALISTICALLY BASED ON PERFORMANCE
     HORSES.forEach(horse => {
         if (horse.id === winnerId) {
-            // Winner becomes a favorite, odds go down (min 1.2)
             horse.odds = Math.max(1.2, horse.odds * 0.85);
         } else {
-            // Losers become less popular, odds go up (max 50.0)
             horse.odds = Math.min(50.0, horse.odds * 1.05);
         }
     });
@@ -485,7 +459,7 @@ async function checkResult(winnerId) {
     saveStats();
 
     // Add to history
-    addToHistory(winnerHorse, won);
+    addToHistory(winnerHorse, won, serverData ? serverData.wonAmount : 0, currentBet);
 }
 
 // Trigger win animation
@@ -558,18 +532,15 @@ function clearRaceResults() {
 }
 
 // Add to game history
-function addToHistory(winnerHorse, won) {
+function addToHistory(winnerHorse, won, winAmount, bet) {
     const historyList = document.getElementById('history-list');
+    if (!historyList) return;
     const item = document.createElement('div');
-
-    const horseInfo = HORSES.find(h => h.id === winnerHorse.id);
-    const displayOdds = horseInfo.displayOdds || horseInfo.odds;
-    const winAmount = won ? Math.floor(currentBet * displayOdds) : 0;
 
     item.className = `history-item ${won ? 'win' : 'lose'}`;
     item.innerHTML = `
         <span class="history-horse">${winnerHorse.emoji} ${winnerHorse.name}</span>
-        <span class="history-amount">${won ? '+' : '-'}${won ? winAmount.toLocaleString() : currentBet.toLocaleString()}</span>
+        <span class="history-amount">${won ? '+' : '-'}${won ? winAmount.toLocaleString() : bet.toLocaleString()}</span>
     `;
 
     historyList.insertBefore(item, historyList.firstChild);

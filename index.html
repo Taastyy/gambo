@@ -14,21 +14,44 @@
             <h1>🎰 Casino Games 🎰</h1>
             <p>Wähle dein Lieblingsspiel und beginne zu spielen!</p>
             
-            <div class="header-actions">
+            <div class="header-actions" id="user-controls" style="display:none;">
                 <a href="shop.html" class="shop-btn">
                     🛒 Shop besuchen
                 </a>
                 <button id="reset-balance-btn" class="reset-btn">
                     🔄 Balance Zurücksetzen
                 </button>
+                <button id="logout-btn" class="reset-btn" style="background:#ff4444; margin-left:10px;">
+                    🚪 Logout
+                </button>
                 <div class="balance-display">
-                    <span>💰 Balance: <span id="balance-amount">1000</span></span>
+                    <span>💰 Balance: <span id="balance-amount">0</span></span>
                 </div>
             </div>
         </header>
 
+        <div id="auth-section" class="auth-section" style="text-align:center; margin: 2rem 0; background:#222; padding:2rem; border-radius:10px;">
+            <h2>Willkommen im Casino</h2>
+            <div class="auth-forms" style="display:flex; justify-content:center; gap:2rem; margin-top:1rem;">
+                <form id="login-form" style="display:flex; flex-direction:column; gap:10px; width:300px;">
+                    <h3>Login</h3>
+                    <input type="text" id="login-user" placeholder="Benutzername" required style="padding:10px;">
+                    <input type="password" id="login-pass" placeholder="Passwort" required style="padding:10px;">
+                    <button type="submit" style="padding:10px; background:#4CAF50; color:white; border:none; cursor:pointer;">Einloggen</button>
+                    <p id="login-error" style="color:red;"></p>
+                </form>
+                <form id="register-form" style="display:flex; flex-direction:column; gap:10px; width:300px;">
+                    <h3>Registrieren</h3>
+                    <input type="text" id="reg-user" placeholder="Benutzername" required style="padding:10px;">
+                    <input type="password" id="reg-pass" placeholder="Passwort" required style="padding:10px;">
+                    <button type="submit" style="padding:10px; background:#2196F3; color:white; border:none; cursor:pointer;">Registrieren</button>
+                    <p id="reg-msg"></p>
+                </form>
+            </div>
+        </div>
+
         <!-- Games Grid -->
-        <main class="games-grid">
+        <main class="games-grid" id="main-games-grid" style="display:none;">
             <!-- Blackjack -->
             <a href="blackjack.html" class="game-card blackjack">
                 <span class="icon">♠️</span>

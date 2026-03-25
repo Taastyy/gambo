@@ -332,6 +332,12 @@
             if (b.x < lw) { b.x = lw; b.vx = Math.abs(b.vx) * DAMP; }
             if (b.x > rw) { b.x = rw; b.vx = -Math.abs(b.vx) * DAMP; }
 
+            if (b.serverData && slots[b.serverData.targetIndex]) {
+                var targetSlot = slots[b.serverData.targetIndex];
+                var targetX = targetSlot.x + targetSlot.w / 2;
+                b.vx += (targetX - b.x) * 0.007 * prog;
+            }
+
             /* peg collisions */
             for (var j = 0; j < pegs.length; j++) {
                 var p = pegs[j];
@@ -366,16 +372,20 @@
                 for (var k = 0; k < slots.length; k++) {
                     var s = slots[k];
                     if (b.x >= s.x && b.x <= s.x + s.w) {
+                        if (b.serverData && slots[b.serverData.targetIndex]) {
+                            s = slots[b.serverData.targetIndex];
+                            b.x = s.x + s.w / 2;
+                        }
                         b.on = false; b.fade = 1;
                         b.y = s.y + 14; s.flash = 1;
                         var big = s.mult >= 5;
                         emitFX(b.x, b.y, RISK_PAL[risk].ball, big ? 65 : 25, big);
-                        land(s);
+                        land(s, b.serverData);
                         if (big) shakeCanvas();
                         break;
                     }
                 }
-                if (b.on && b.y > CH + 40) { b.on = false; b.fade = 0; land(null); }
+                if (b.on && b.y > CH + 40) { b.on = false; b.fade = 0; land(null, b.serverData); }
             }
         }
 
@@ -402,9 +412,9 @@
     }
 
     /* ======= landing logic ======= */
-    function land(slot) {
-        var mult = slot ? slot.mult : 0;
-        var win = slot ? Math.round(bet * mult) : 0;
+    function land(slot, serverData) {
+        var mult = serverData ? serverData.multiplier : (slot ? slot.mult : 0);
+        var win = serverData ? serverData.wonAmount : (slot ? Math.round(bet * mult) : 0);
         var prof = win - bet;
 
         stats.games++;
@@ -412,7 +422,10 @@
         else { stats.losses++; stats.totalLost += Math.abs(prof); }
         if (mult > stats.maxMult) stats.maxMult = mult;
 
-        if (win > 0 && typeof addToBalance === 'function') addToBalance(win);
+        if (serverData && document.getElementById('balance')) {
+            document.getElementById('balance').textContent = Math.round(serverData.newBalance);
+            if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+        }
         ui();
 
         var rv = document.getElementById('result-value');
@@ -447,29 +460,42 @@
     }
 
     /* ======= drop ======= */
-    window.dropBall = function () {
+    window.dropBall = async function () {
         ensureAudio();
-        var bal = typeof getBalanceSync === 'function' ? getBalanceSync() : 1000;
+        var bal = 0;
+        if (typeof getBalanceSync === 'function') bal = getBalanceSync();
         if (bet > bal || bet <= 0) return;
 
-        if (typeof deductFromBalance === 'function') {
-            deductFromBalance(bet).then(function (ok) {
-                if (!ok) return;
-                ui(); spawn();
+        try {
+            const token = localStorage.getItem('casinoToken') || '';
+            const res = await fetch('/api/plinko/play', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ bet, rows: nRows, risk })
             });
-        } else {
-            spawn();
+            const data = await res.json();
+            if (!data.success) {
+                if(window.showMessage) window.showMessage(data.error || 'Server Fehler');
+                return;
+            }
+
+            if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance - data.wonAmount);
+            ui();
+            spawn(data);
+        } catch(e) {
+            console.error(e);
         }
     };
 
-    function spawn() {
+    function spawn(serverData) {
         sfxDrop();
         balls.push({
             x: CW / 2 + (Math.random() - .5) * 18,
             y: 30,
             vx: (Math.random() - .5) * 1,
             vy: 0,
-            on: true, fade: 1, trail: []
+            on: true, fade: 1, trail: [],
+            serverData: serverData
         });
         emitFX(CW / 2, 32, RISK_PAL[risk].ball, 5, false);
         go();
