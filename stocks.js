@@ -287,13 +287,18 @@ function calculatePriceChange(stock) {
 }
 
 function generateChartSVG(history, color = '#6366f1') {
-    if (history.length < 2) return '';
+    if (!history || history.length < 2) return '';
+    
     const chartHistory = history.slice(-60);
-    const minPrice = Math.min(...chartHistory);
-    const maxPrice = Math.max(...chartHistory);
+    const minVal = Math.min(...chartHistory);
+    const maxVal = Math.max(...chartHistory);
+    const rawRange = maxVal - minVal;
+    
+    // Add 10% vertical padding so the line doesn't hit the edges
+    const padding = rawRange === 0 ? 1 : rawRange * 0.1;
+    const minPrice = minVal - padding;
+    const maxPrice = maxVal + padding;
     const priceRange = maxPrice - minPrice;
-
-    if (priceRange === 0) return `<svg width="100%" height="100%" viewBox="0 0 100 60"><line x1="0" y1="30" x2="100" y2="30" stroke="${color}" stroke-width="2"/></svg>`;
 
     let pathData = '';
     chartHistory.forEach((price, index) => {
@@ -302,15 +307,18 @@ function generateChartSVG(history, color = '#6366f1') {
         pathData += (index === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
     });
 
-    return `<svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none">
+    // Extract unique ID for gradient clip (avoid conflict between multiple charts)
+    const gradId = 'glow-' + Math.random().toString(36).substr(2, 9);
+
+    return `<svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style="filter: drop-shadow(0 0 4px ${color}44)">
                 <defs>
-                    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stop-color="${color}" stop-opacity="0.4"/>
+                    <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="${color}" stop-opacity="0.3"/>
                         <stop offset="100%" stop-color="${color}" stop-opacity="0.0"/>
                     </linearGradient>
                 </defs>
-                <path d="${pathData} L 100 60 L 0 60 Z" fill="url(#glow)"/>
-                <path d="${pathData}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+                <path d="${pathData} L 100 60 L 0 60 Z" fill="url(#${gradId})"/>
+                <path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>`;
 }
 
