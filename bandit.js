@@ -474,7 +474,7 @@ async function spinReel(index, finalSymbol) {
     // Rapid symbol change animation
     for (let i = 0; i < 15; i++) {
         const tempSymbol = getRandomSymbol();
-        reelSymbol.innerHTML = `<span class="reel-symbol">${tempSymbol.emoji}</span>`;
+        reelSymbol.innerHTML = `<span class="reel-symbol">${tempSymbol}</span>`;
         if (i % 3 === 0) sfxReelTick();  // tick every 3rd symbol
         await delay(50 + (index * 50));
     }
@@ -482,7 +482,7 @@ async function spinReel(index, finalSymbol) {
     // Slow down
     for (let i = 0; i < 5; i++) {
         const tempSymbol = getRandomSymbol();
-        reelSymbol.innerHTML = `<span class="reel-symbol">${tempSymbol.emoji}</span>`;
+        reelSymbol.innerHTML = `<span class="reel-symbol">${tempSymbol}</span>`;
         await delay(100 + (index * 50));
     }
 

@@ -220,12 +220,6 @@
             return typeof getBalanceSync === 'function' ? getBalanceSync() : 1000;
         }
 
-        function updateBalanceDisplay() {
-            const balance = getBalance();
-            document.getElementById('balance').textContent = formatNumber(balance);
-            document.getElementById('stats-balance').textContent = formatNumber(balance);
-        }
-
         // Wette setzen
         function changeBet(amount) {
             if (gameState !== 'idle') return;

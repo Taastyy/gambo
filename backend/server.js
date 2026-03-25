@@ -13,6 +13,16 @@ app.use(express.json());
 
 const JWT_SECRET = 'super-secret-casino-key-123';
 
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    const oldSend = res.json;
+    res.json = function(data) {
+        console.log(`${new Date().toISOString()} - Response ${res.statusCode} for ${req.url}`);
+        return oldSend.apply(res, arguments);
+    };
+    next();
+});
+
 // Initialize SQLite DB
 const dbPath = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
