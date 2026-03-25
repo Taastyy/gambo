@@ -117,16 +117,7 @@ function initializeElements() {
     setupModalListeners('short');
     setupModalListeners('cover');
 
-    // Skip button
-    const skipBtn = document.getElementById('skip-btn');
-    if (skipBtn) {
-        skipBtn.addEventListener('click', skipCountdown);
-        skipBtn.addEventListener('mousedown', startSkipping);
-        skipBtn.addEventListener('mouseup', stopSkipping);
-        skipBtn.addEventListener('mouseleave', stopSkipping);
-        skipBtn.addEventListener('touchstart', function (e) { e.preventDefault(); startSkipping(); });
-        skipBtn.addEventListener('touchend', stopSkipping);
-    }
+    // Skip button logic removed as market is server-synced
 }
 
 function setupModalListeners(type) {
@@ -777,26 +768,32 @@ function showNewsToast(text, sym, imp) {
 }
 
 function startCountdown() {
+    clearInterval(countdownInterval);
     countdownInterval = setInterval(() => {
         countdown--;
-        countdownEl.textContent = countdown;
-        const b = document.getElementById('countdown-bar');
-        if (b) b.style.width = `${(countdown / 30) * 100}%`;
-
-        if (countdown <= 10) countdownEl.style.color = 'var(--lose-red)';
-        else countdownEl.style.color = 'var(--text-secondary)';
-
         if (countdown <= 0) {
-            updateStockPrices();
+            syncMarketFromServer();
             countdown = 30;
-            if (b) b.style.width = '100%';
         }
+        if (countdownEl) {
+            countdownEl.textContent = countdown;
+            if (countdown <= 10) countdownEl.style.color = '#f43f5e';
+            else countdownEl.style.color = '';
+        }
+        updateCountdownBar();
     }, 1000);
 }
 
-function skipCountdown() { countdown = 0; updateStockPrices(); countdown = 30; countdownEl.textContent = 30; if (document.getElementById('countdown-bar')) document.getElementById('countdown-bar').style.width = '100%'; }
-function startSkipping() { if (!skipInterval) skipInterval = setInterval(skipCountdown, 100); }
-function stopSkipping() { clearInterval(skipInterval); skipInterval = null; }
+function updateCountdownBar() {
+    const bar = document.getElementById('countdown-bar');
+    if (bar) {
+        const percent = (countdown / 30) * 100;
+        bar.style.width = percent + '%';
+        if (percent < 20) bar.style.background = '#f43f5e';
+        else if (percent < 50) bar.style.background = '#fbbf24';
+        else bar.style.background = '#3b82f6';
+    }
+}
 
 function addTransaction(type, sym, shares, amt, profit = 0, lev = 1) {
     if (!historyList) return;
@@ -864,6 +861,10 @@ async function syncMarketFromServer() {
         const res = await fetch('/api/stocks/market');
         const data = await res.json();
         if (data.success && data.market) {
+            if (data.phase && marketIndicator) {
+                marketIndicator.textContent = data.phase === 'bull' ? 'BULL MARKET' : 'BEAR MARKET';
+                marketIndicator.className = 'stat-value market-value ' + data.phase;
+            }
             data.market.forEach(serverAsset => {
                 const combined = [...STOCKS, ...ETFS];
                 const localAsset = combined.find(s => s.symbol === serverAsset.symbol);

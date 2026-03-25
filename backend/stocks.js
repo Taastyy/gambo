@@ -47,7 +47,7 @@ function calculateLiquidationPrice(entryPrice, leverage) {
 
 function setupStocksRoutes(app, db, authenticateToken) {
     app.get('/api/stocks/market', (req, res) => {
-        res.json({ success: true, market: STOCKS });
+        res.json({ success: true, market: STOCKS, phase: currentPhase });
     });
 
     app.get('/api/stocks/portfolio', authenticateToken, (req, res) => {
