@@ -858,5 +858,30 @@ function resetStats() {
 }
 function resetGame() { if (typeof resetBalance === 'function') resetBalance().then(resetStats); else resetStats(); }
 
+// Sync market prices from server
+async function syncMarketFromServer() {
+    try {
+        const res = await fetch('/api/stocks/market');
+        const data = await res.json();
+        if (data.success && data.market) {
+            data.market.forEach(serverAsset => {
+                const combined = [...STOCKS, ...ETFS];
+                const localAsset = combined.find(s => s.symbol === serverAsset.symbol);
+                if (localAsset) {
+                    localAsset.price = serverAsset.price;
+                    if (!localAsset.history) localAsset.history = [];
+                    localAsset.history.push(serverAsset.price);
+                    if (localAsset.history.length > 20) localAsset.history.shift();
+                }
+            });
+            renderStocks();
+            updateUI();
+        }
+    } catch (e) { console.error('Market sync error:', e); }
+}
+
+setInterval(syncMarketFromServer, 30000);
+setTimeout(syncMarketFromServer, 1000);
+
 // Expose functions to window
-Object.assign(window, { buyStock, sellStock, showStatsModal, resetGame, updateTotalCost, updateTotalRevenue, confirmSell, openShortModal, confirmShort, closeShortModal, updateShortRevenue, updateLeverageRiskIndicator, calculateLiquidationPrice, openCoverModal, confirmCover, closeCoverModal, updateCoverCost, renderShortPortfolio, closeBuyModal, closeSellModal, confirmBuy });
+Object.assign(window, { buyStock, sellStock, showStatsModal, resetGame, updateTotalCost, updateTotalRevenue, confirmSell, openShortModal, confirmShort, closeShortModal, updateShortRevenue, updateLeverageRiskIndicator, calculateLiquidationPrice, openCoverModal, confirmCover, closeCoverModal, updateCoverCost, renderShortPortfolio, closeBuyModal, closeSellModal, confirmBuy, syncMarketFromServer });
