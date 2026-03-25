@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
     renderStocks();
     renderPortfolio();
     renderShortPortfolio();
-    startCountdown();
+    // Countdown removed for real-time sync
     updateUI();
 });
 
@@ -767,33 +767,15 @@ function showNewsToast(text, sym, imp) {
     setTimeout(() => { toast.classList.remove('toast-visible'); setTimeout(() => toast.remove(), 500); }, 4000);
 }
 
-function startCountdown() {
-    clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-        countdown--;
-        if (countdown <= 0) {
-            syncMarketFromServer();
-            countdown = 30;
-        }
-        if (countdownEl) {
-            countdownEl.textContent = countdown;
-            if (countdown <= 10) countdownEl.style.color = '#f43f5e';
-            else countdownEl.style.color = '';
-        }
-        updateCountdownBar();
-    }, 1000);
+// Real-time market sync every 3 seconds
+function startMarketPolling() {
+    setInterval(syncMarketFromServer, 3000);
 }
 
-function updateCountdownBar() {
-    const bar = document.getElementById('countdown-bar');
-    if (bar) {
-        const percent = (countdown / 30) * 100;
-        bar.style.width = percent + '%';
-        if (percent < 20) bar.style.background = '#f43f5e';
-        else if (percent < 50) bar.style.background = '#fbbf24';
-        else bar.style.background = '#3b82f6';
-    }
-}
+// Ensure polling starts
+setTimeout(startMarketPolling, 100);
+
+// Visual countdown bar removed
 
 function addTransaction(type, sym, shares, amt, profit = 0, lev = 1) {
     if (!historyList) return;
@@ -881,7 +863,7 @@ async function syncMarketFromServer() {
     } catch (e) { console.error('Market sync error:', e); }
 }
 
-setInterval(syncMarketFromServer, 30000);
+setInterval(syncMarketFromServer, 3000);
 setTimeout(syncMarketFromServer, 1000);
 
 // Expose functions to window

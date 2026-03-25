@@ -16,21 +16,36 @@ const STOCKS = [
 let currentPhase = 'bull';
 
 setInterval(() => {
-    const isBull = Math.random() > 0.4;
-    currentPhase = isBull ? 'bull' : 'bear';
-    
+    // Determine market trend phase
+    if (Math.random() < 0.02) { // 2% chance to flip phase
+        currentPhase = currentPhase === 'bull' ? 'bear' : 'bull';
+    }
+
     STOCKS.forEach(asset => {
-        let trend = isBull ? 0.005 : -0.005;
-        let change = (Math.random() * asset.volatility * 2) - asset.volatility + trend;
+        const basePrice = asset.basePrice || 150.00;
+        const volatility = asset.volatility || 0.03;
         
-        if (Math.random() < 0.1) {
-            change += (Math.random() > 0.5 ? 0.08 : -0.08);
+        // 1. Random Walk with normal-ish distribution
+        let change = (Math.random() + Math.random() + Math.random() - 1.5) * volatility;
+        
+        // 2. Trend Bias based on market phase
+        const phaseBias = currentPhase === 'bull' ? 0.002 : -0.002;
+        change += phaseBias;
+        
+        // 3. Mean Reversion: Gently pull price back to base if it drifts > 50%
+        const drift = (asset.price - basePrice) / basePrice;
+        if (Math.abs(drift) > 0.5) {
+            change -= drift * 0.01; // Pull back 1%
         }
         
-        asset.price = asset.price * (1 + change);
-        if (asset.price < 5) asset.price = 5;
+        // Apply change
+        asset.price *= (1 + change);
+        
+        // 4. Clamping for realism (No 0, No infinity)
+        if (asset.price < 5) asset.price = 5 + Math.random();
+        if (asset.price > 5000) asset.price = 5000 - Math.random() * 100;
     });
-}, 30000);
+}, 3000);
 
 const portfolios = new Map();
 
