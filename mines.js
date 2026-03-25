@@ -190,7 +190,7 @@ async function startGame() {
             gameState.state = GAME_STATE.WAITING;
             return;
         }
-        if (balanceEl) balanceEl.textContent = data.newBalance.toFixed(2);
+        if (typeof window.getBalance === 'function') window.getBalance();
     } catch(e) {
         showMsg('Netzwerkfehler', 'danger');
         gameState.state = GAME_STATE.WAITING;
@@ -332,9 +332,7 @@ function endGame(won, cashedOut = false, newBalance) {
         showMsg(`Mine getroffen! -€${gameState.currentBet.toFixed(2)}`, 'danger');
         addHistory(false, gameState.currentBet, 0);
     }
-    
-    if (balanceEl && newBalance !== undefined) balanceEl.textContent = newBalance.toFixed(2);
-    if (typeof window.syncBalance === 'function') setTimeout(window.syncBalance, 100);
+    if (typeof window.getBalance === 'function') window.getBalance();
 
     saveStats();
     updateUI();
@@ -388,10 +386,7 @@ function showHints() {
 
 // UI
 function updateUI() {
-    if(typeof syncBalance === 'function') syncBalance();
-    if(typeof getBalanceSync === 'function' && balanceEl) {
-        balanceEl.textContent = getBalanceSync().toFixed(2);
-    }
+    // getBalance() handles UI synchronization
     
     currentMultiplierEl.textContent = `${gameState.currentMultiplier.toFixed(2)}×`;
     potentialWinEl.textContent = `€${gameState.potentialWin.toFixed(2)}`;

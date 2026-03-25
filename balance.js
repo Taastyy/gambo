@@ -40,8 +40,8 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                updateAllDisplays(data.balance);
-                return data.balance;
+                updateAllDisplays(1000);
+                return 1000;
             }
         } catch (e) {
             console.error('Reset error:', e);
@@ -49,52 +49,77 @@
     }
 
     function updateAllDisplays(balance) {
+        if (balance === undefined || balance === null) return;
         let rounded = Math.round(balance);
         
-        // Comprehensive list of IDs used across all game pages
-        const ids = ['balance', 'balance-amount', 'stats-balance', 'balance-display', 'user-balance'];
-        ids.forEach(id => {
+        // 1. Direct ID updates (highest priority)
+        const priorityIds = ['balance', 'balance-amount', 'stats-balance', 'user-balance', 'balance-value'];
+        priorityIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                if (id === 'balance-display' || id === 'user-balance') {
-                    el.textContent = `Balance: ${rounded}`;
-                } else {
-                    el.textContent = rounded;
-                }
+                if (el.tagName === 'INPUT') el.value = rounded;
+                else el.textContent = rounded;
             }
         });
 
-        // Handle classes
-        document.querySelectorAll('.balance-value, .balance-amount, .balance').forEach(el => {
-            if (el.tagName === 'INPUT') {
-                el.value = rounded;
-            } else {
-                // If it contains "Balance:", keep the prefix
-                if (el.textContent.includes('Balance:')) {
-                    el.textContent = `Balance: ${rounded}`;
-                } else {
-                    el.textContent = rounded;
-                }
-            }
+        // 2. Class updates (only if they don't have one of the priority IDs themselves)
+        document.querySelectorAll('.balance-value, .balance-amount, .balance-num, .stat-val').forEach(el => {
+            if (priorityIds.includes(el.id)) return;
+            if (el.tagName === 'INPUT') el.value = rounded;
+            else el.textContent = rounded;
         });
 
-        // Handle the specific .balance-display class structure
-        document.querySelectorAll('.balance-display').forEach(el => {
-            const spanValue = el.querySelector('span span') || el.querySelector('span');
-            if (spanValue && el.id !== 'balance-amount') {
-                spanValue.textContent = rounded;
-            } else if (el.id !== 'balance-amount') {
+        // 3. Container updates (preserving structure)
+        document.querySelectorAll('.balance, .balance-display, .wallet-amount, .balance-container, .score-item').forEach(el => {
+            // Avoid containers that are themselves a priority item
+            if (priorityIds.includes(el.id)) return;
+
+            // Check if there's a specific nested element meant for the value
+            const nestedValue = el.querySelector('#balance, .balance-value, #balance-amount, .balance-amount, #stats-balance, .stat-val, .score-value');
+            if (nestedValue) {
+                nestedValue.textContent = rounded;
+                return;
+            }
+
+            // Fallback: Label preservation
+            let text = el.textContent;
+            if (text.includes('Balance:') || text.includes('Balance :')) {
                 el.textContent = `Balance: ${rounded}`;
+            } else if (text.includes('Guthaben:') || text.includes('Guthaben :')) {
+                el.textContent = `Guthaben: ${rounded}`;
+            } else if (text.includes('Kontostand:') || text.includes('Kontostand :')) {
+                el.textContent = `Kontostand: ${rounded}`;
+            } else if (text.includes('€') || text.includes('$')) {
+                const symbol = text.includes('€') ? '€' : '$';
+                // Only replace if the element doesn't have many children (to avoid breaking complex layouts)
+                if (el.children.length <= 1) {
+                    el.textContent = `${symbol}${rounded}`;
+                }
+            } else if (el.classList.contains('balance-display') || el.classList.contains('balance')) {
+                // Last resort for designated balance elements
+                if (el.children.length === 0) el.textContent = rounded;
             }
         });
     }
 
     function getBalanceSync() {
-        getBalance(); // triggers async fetch
-        const el = document.getElementById('balance-amount') || document.getElementById('balance') || document.getElementById('balance-display');
-        if (el) {
-            const val = el.textContent.replace(/[^0-9]/g, '');
-            return parseInt(val || '0');
+        const els = [
+            document.getElementById('balance-amount'),
+            document.getElementById('balance'),
+            document.getElementById('stats-balance'),
+            document.querySelector('.balance-value'),
+            document.querySelector('.balance-amount')
+        ];
+        
+        for (const el of els) {
+            if (el && el.textContent) {
+                let text = el.textContent.replace(/[€$]/g, '').replace(',', '.').trim();
+                let match = text.match(/[0-9.]+/);
+                if (match) {
+                    let val = parseFloat(match[0]);
+                    if (!isNaN(val)) return Math.round(val);
+                }
+            }
         }
         return 0;
     }
@@ -105,8 +130,7 @@
     window.syncBalance = getBalance;
     window.updateBalanceDisplay = updateAllDisplays;
 
-    // Periodically sync balance (every 5 seconds)
     setInterval(getBalance, 5000);
-
     window.addEventListener('load', getBalance);
+    setTimeout(getBalance, 100);
 })();
