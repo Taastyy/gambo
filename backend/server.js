@@ -43,11 +43,10 @@ db.serialize(() => {
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    
-    if (token == null) return res.sendStatus(401);
+    if (!token) return res.status(401).json({ success: false, error: 'Unauthorized' });
     
     jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.sendStatus(403);
+        if (err) return res.status(403).json({ success: false, error: 'Forbidden' });
         req.user = user;
         next();
     });
@@ -63,6 +62,7 @@ app.post('/api/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         db.run('INSERT INTO users (username, password_hash, balance) VALUES (?, ?, ?)', [username, hashedPassword, 1000], function(err) {
             if (err) {
+                console.error('Registration DB Error:', err.message);
                 if (err.message.includes('UNIQUE constraint failed')) {
                     return res.status(400).json({ error: 'Username already exists' });
                 }
@@ -159,6 +159,7 @@ app.post('/api/roulette/play', authenticateToken, (req, res) => {
         
         const newBalance = Math.round(row.balance - totalBet + won);
         db.run('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.user.id], function(err) {
+            if (err) return res.status(500).json({ success: false, error: 'Database update failed' });
             res.json({ success: true, winningNumber: winNum, won, newBalance });
         });
     });
