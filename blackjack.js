@@ -470,7 +470,9 @@ function renderCards() {
     
     // Show score of current hand
     if (gameState.playerHands.length > 0) {
-        const currentHand = gameState.playerHands[gameState.currentHandIndex];
+        let index = gameState.currentHandIndex;
+        if (index >= gameState.playerHands.length) index = gameState.playerHands.length - 1;
+        const currentHand = gameState.playerHands[index];
         playerScoreEl.textContent = getHandScore(currentHand);
     } else {
         playerScoreEl.textContent = '';
