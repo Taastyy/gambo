@@ -866,6 +866,8 @@ async function syncMarketFromServer() {
                 }
             });
             renderStocks();
+            renderPortfolio();
+            renderShortPortfolio();
             updateUI();
         }
     } catch (e) { console.error('Market sync error:', e); }
