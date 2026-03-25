@@ -810,6 +810,16 @@ function updateUI() {
         const a = STOCKS.find(s => s.symbol === sym) || ETFS.find(e => e.symbol === sym);
         if (a) { portVal += data.shares * a.price; unrl += (data.shares * a.price) - data.totalInvested; }
     });
+    
+    // Calculate short P&L
+    Object.entries(shortPortfolio).forEach(([sym, data]) => {
+        const a = STOCKS.find(s => s.symbol === sym);
+        if (a) {
+            const rawPnl = (data.entryPrice - a.price) * data.shares;
+            unrl += rawPnl * (data.leverage || 1);
+        }
+    });
+
     const pv = document.getElementById('portfolio-value'); if (pv) pv.textContent = `$` + portVal.toFixed(2);
     const tp = document.getElementById('total-profit'); if (tp) { tp.textContent = `${totalProfit >= 0 ? '+' : ''}$${totalProfit.toFixed(2)}`; tp.style.color = totalProfit >= 0 ? 'var(--win-green)' : 'var(--lose-red)'; }
     const ur = document.getElementById('unrealized-profit'); if (ur) { ur.textContent = `${unrl >= 0 ? '+' : ''}$${unrl.toFixed(2)}`; ur.style.color = unrl >= 0 ? 'var(--win-green)' : 'var(--lose-red)'; }
