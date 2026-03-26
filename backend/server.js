@@ -40,8 +40,15 @@ db.serialize(() => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
-        balance INTEGER DEFAULT 1000
-    )`);
+        balance INTEGER DEFAULT 1000,
+        portfolio TEXT DEFAULT '{ "long": {}, "short": {} }'
+    )`, (err) => {
+        if (!err) {
+            db.run("ALTER TABLE users ADD COLUMN portfolio TEXT DEFAULT '{ \"long\": {}, \"short\": {} }'", (err) => {
+                if (err) { /* column probably exists */ }
+            });
+        }
+    });
 });
 
 // Middleware to verify JWT
