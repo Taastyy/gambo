@@ -52,7 +52,7 @@
         if (balance === undefined || balance === null) return;
         let rounded = Math.round(balance);
         
-        // 1. Direct ID updates (highest priority)
+        // 1. Target very specific ID sets (priority)
         const priorityIds = ['balance', 'balance-amount', 'stats-balance', 'user-balance', 'balance-value'];
         priorityIds.forEach(id => {
             const el = document.getElementById(id);
@@ -62,42 +62,32 @@
             }
         });
 
-        // 2. Class updates (only if they don't have one of the priority IDs themselves)
-        document.querySelectorAll('.balance-value, .balance-amount, .balance-num, .stat-val').forEach(el => {
+        // 2. Class updates (only safe classes)
+        document.querySelectorAll('.balance-value, .balance-amount, .balance-num, .user-balance-value').forEach(el => {
+            // Skip elements that already have one of the priority IDs
             if (priorityIds.includes(el.id)) return;
             if (el.tagName === 'INPUT') el.value = rounded;
             else el.textContent = rounded;
         });
 
-        // 3. Container updates (preserving structure)
-        document.querySelectorAll('.balance, .balance-display, .wallet-amount, .balance-container, .score-item').forEach(el => {
-            // Avoid containers that are themselves a priority item
+        // 3. Container updates with very specific balance indicators
+        document.querySelectorAll('.balance-container, .balance-display').forEach(el => {
             if (priorityIds.includes(el.id)) return;
 
-            // Check if there's a specific nested element meant for the value
-            const nestedValue = el.querySelector('#balance, .balance-value, #balance-amount, .balance-amount, #stats-balance, .stat-val, .score-value');
+            // Attempt to find balance child
+            const nestedValue = el.querySelector('#balance, .balance-value, #balance-amount, .balance-amount, #stats-balance');
             if (nestedValue) {
                 nestedValue.textContent = rounded;
                 return;
             }
 
-            // Fallback: Label preservation
+            // Fallback: Label check (more strict)
             let text = el.textContent;
-            if (text.includes('Balance:') || text.includes('Balance :')) {
-                el.textContent = `Balance: ${rounded}`;
-            } else if (text.includes('Guthaben:') || text.includes('Guthaben :')) {
-                el.textContent = `Guthaben: ${rounded}`;
-            } else if (text.includes('Kontostand:') || text.includes('Kontostand :')) {
-                el.textContent = `Kontostand: ${rounded}`;
-            } else if (text.includes('€') || text.includes('$')) {
-                const symbol = text.includes('€') ? '€' : '$';
-                // Only replace if the element doesn't have many children (to avoid breaking complex layouts)
-                if (el.children.length <= 1) {
-                    el.textContent = `${symbol}${rounded}`;
-                }
-            } else if (el.classList.contains('balance-display') || el.classList.contains('balance')) {
-                // Last resort for designated balance elements
-                if (el.children.length === 0) el.textContent = rounded;
+            if (text.includes('Balance:') || text.includes('Guthaben:') || text.includes('Kontostand:')) {
+                // Keep the label, update the number part
+                const symbol = text.includes('€') ? '€' : (text.includes('$') ? '$' : '');
+                const label = text.split(':')[0] + ':';
+                el.textContent = `${label} ${symbol}${rounded}`;
             }
         });
     }
@@ -133,4 +123,18 @@
     setInterval(getBalance, 5000);
     window.addEventListener('load', getBalance);
     setTimeout(getBalance, 100);
+
+    // Immediate sync when tab becomes active
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            getBalance();
+        }
+    });
+
+    // Handle game-specific balance updates if needed
+    window.addEventListener('balanceUpdate', (e) => {
+        if (e.detail && typeof e.detail.balance === 'number') {
+            updateAllDisplays(e.detail.balance);
+        }
+    });
 })();

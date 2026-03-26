@@ -439,7 +439,9 @@
                 const data = await res.json();
                 
                 if (!data.success) {
-                    showMessage(data.error || 'Server Fehler!', 'error');
+                    let errorMsg = data.error || 'Server Fehler!';
+                    if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+                    showMessage(errorMsg, 'error');
                     return;
                 }
 
@@ -607,26 +609,49 @@
         }
 
         function updateStatsDisplay() {
-            document.getElementById('stats-total-games').textContent = stats.totalGames;
-            document.getElementById('stats-wins').textContent = stats.wins;
-            document.getElementById('stats-losses').textContent = stats.losses;
-            document.getElementById('stats-highest-win').textContent = formatNumber(stats.highestWin);
-            document.getElementById('stats-total-winnings').textContent = formatNumber(stats.totalWinnings);
-            document.getElementById('stats-total-losses').textContent = formatNumber(stats.totalLosses);
+            const totalGamesEl = document.getElementById('stats-total-games');
+            if (totalGamesEl) totalGamesEl.textContent = stats.totalGames;
+            
+            const winsEl = document.getElementById('stats-wins');
+            if (winsEl) winsEl.textContent = stats.wins;
+            
+            const lossesEl = document.getElementById('stats-losses');
+            if (lossesEl) lossesEl.textContent = stats.losses;
+            
+            const highestWinEl = document.getElementById('stats-highest-win');
+            if (highestWinEl) highestWinEl.textContent = formatNumber(stats.highestWin);
+            
+            const totalWinningsEl = document.getElementById('stats-total-winnings');
+            if (totalWinningsEl) totalWinningsEl.textContent = formatNumber(stats.totalWinnings);
+            
+            const totalLossesEl = document.getElementById('stats-total-losses');
+            if (totalLossesEl) totalLossesEl.textContent = formatNumber(stats.totalLosses);
+            
+            // Header Stats (Task 5)
+            const headerGamesEl = document.getElementById('total-games');
+            if (headerGamesEl) headerGamesEl.textContent = stats.totalGames;
+            
+            const headerWinsEl = document.getElementById('total-wins');
+            if (headerWinsEl) headerWinsEl.textContent = stats.wins;
             
             const balance = getBalance();
             const profit = stats.totalWinnings - stats.totalLosses;
-            document.getElementById('stats-balance').textContent = formatNumber(balance);
+            
+            const statsBalanceEl = document.getElementById('stats-balance');
+            if (statsBalanceEl) statsBalanceEl.textContent = formatNumber(balance);
             
             const profitEl = document.getElementById('stats-profit');
-            profitEl.textContent = (profit >= 0 ? '+' : '') + formatNumber(profit);
-            profitEl.className = 'stat-value ' + (profit >= 0 ? 'positive' : 'negative');
+            if (profitEl) {
+                profitEl.textContent = (profit >= 0 ? '+' : '') + formatNumber(profit);
+                profitEl.className = 'stat-value ' + (profit >= 0 ? 'positive' : 'negative');
+            }
         }
 
         // Modal
         function showStatsModal() {
             document.getElementById('stats-modal-overlay').style.display = 'flex';
             document.getElementById('stats-modal').style.display = 'block';
+            updateStatsDisplay();
         }
 
         function hideStatsModal() {
@@ -653,10 +678,22 @@
             loadStats();
             generateNumberGrid();
             generateSuperNumberGrid();
-            updateBalanceDisplay();
             updateBetDisplay();
             updateStatsDisplay();
             updateSelectedDisplay();
+
+            // Task 20: Auto-adjust bet on load
+            setTimeout(() => {
+                if (typeof getBalanceSync === 'function') {
+                    const balance = getBalanceSync();
+                    if (balance < currentBet) {
+                        currentBet = balance;
+                        if (currentBet < 1) currentBet = 1;
+                        document.getElementById('bet-input').value = currentBet;
+                        updateBetDisplay();
+                    }
+                }
+            }, 100);
 
             document.getElementById('close-stats-modal').addEventListener('click', hideStatsModal);
             document.getElementById('stats-modal-overlay').addEventListener('click', function(e) {

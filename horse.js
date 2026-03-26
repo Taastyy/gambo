@@ -39,6 +39,19 @@ document.addEventListener('DOMContentLoaded', function () {
     setupEventListeners();
     updateUI();
     randomizeOdds();
+
+    // Task 20: Auto-adjust bet on load
+    setTimeout(() => {
+        if (typeof getBalanceSync === 'function') {
+            const balance = getBalanceSync();
+            if (balance < currentBet) {
+                currentBet = balance;
+                if (currentBet < 1) currentBet = 1;
+                if (betInput) betInput.value = currentBet;
+                updateUI();
+            }
+        }
+    }, 100);
 });
 
 // Load dynamic odds from storage
@@ -239,7 +252,9 @@ async function startRace() {
         data = await res.json();
         
         if (!data.success) {
-            showMessage(data.error || 'Server Fehler!', 'error');
+            let errorMsg = data.error || 'Server Fehler!';
+            if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+            showMessage(errorMsg, 'error');
             return;
         }
 
@@ -307,7 +322,8 @@ async function showCountdown() {
 // Run the race animation
 async function runRace(isWin, targetHorseId) {
     const horses = document.querySelectorAll('.horse');
-    const trackWidth = document.getElementById('race-track').offsetWidth - 100;
+    const trackEl = document.getElementById('race-track');
+    const trackWidth = Math.max(200, (trackEl ? trackEl.offsetWidth : 800) - 100);
 
     // Initialize positions
     const positions = Array(HORSES.length).fill(0);
@@ -553,8 +569,9 @@ function addToHistory(winnerHorse, won, winAmount, bet) {
 
 // Update UI elements
 function updateUI() {
-    document.getElementById('current-bet').textContent = currentBet;
-    document.getElementById('total-wins').textContent = stats.totalWins;
+    if (document.getElementById('current-bet')) document.getElementById('current-bet').textContent = currentBet;
+    if (document.getElementById('total-wins')) document.getElementById('total-wins').textContent = stats.totalWins;
+    updateStatsUI();
 }
 
 // Update statistics UI

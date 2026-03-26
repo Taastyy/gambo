@@ -6,7 +6,7 @@
 const TEAMS = [
     { id: 'GER', name: 'Deutschland', emoji: '🇩🇪', strength: 85 },
     { id: 'FRA', name: 'Frankreich', emoji: '🇫🇷', strength: 88 },
-    { id: 'ENG', name: 'England', emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', strength: 86 },
+    { id: 'ENG', name: 'England', emoji: 'ENG', strength: 86 },
     { id: 'SPA', name: 'Spanien', emoji: '🇪🇸', strength: 84 },
     { id: 'ITA', name: 'Italien', emoji: '🇮🇹', strength: 82 },
     { id: 'BRA', name: 'Brasilien', emoji: '🇧🇷', strength: 89 },
@@ -80,23 +80,22 @@ function saveStats() {
     localStorage.setItem('footballStats', JSON.stringify(stats));
 }
 
-function generateNewMatches() {
-    matches = [];
-    const shuffled = [...TEAMS].sort(() => 0.5 - Math.random());
-    
-    for (let i = 0; i < shuffled.length; i += 2) {
-        const home = shuffled[i];
-        const away = shuffled[i + 1];
-        if (!home || !away) break;
-
-        matches.push(createMatch(home, away));
+async function generateNewMatches() {
+    try {
+        const token = localStorage.getItem('casinoToken') || '';
+        const res = await fetch('/api/football/matches', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            matches = data.matches;
+            renderMatches();
+            betSlip = [];
+            renderSlip();
+        }
+    } catch(e) {
+        console.error('Error fetching matches:', e);
     }
-    
-    renderMatches();
-    // Clear slip if matches changed? No, let's keep it but mark as invalid or update odds.
-    // For simplicity, we just clear the slip.
-    betSlip = [];
-    renderSlip();
 }
 
 function createMatch(home, away) {
@@ -272,7 +271,7 @@ async function placeBet() {
 
     placeBetBtnEl.disabled = true;
 
-    const totalOdds = betSlip.reduce((acc, item) => acc * item.odds, 1);
+    const bets = betSlip.map(s => ({ matchId: s.matchId, pick: s.pick }));
     
     // Call server
     try {
@@ -280,7 +279,7 @@ async function placeBet() {
         const res = await fetch('/api/football/play', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ amount, totalOdds })
+            body: JSON.stringify({ amount, bets })
         });
         const data = await res.json();
         
@@ -293,12 +292,14 @@ async function placeBet() {
         // Deduct balance instantly
         if (document.getElementById('balance')) document.getElementById('balance').textContent = Math.round(data.newBalance - data.wonAmount).toLocaleString();
 
+        const realTotalOdds = data.totalOdds || totalOdds;
+
         const ticket = {
             id: Date.now(),
             bets: [...betSlip],
             amount,
-            totalOdds,
-            potentialPayout: data.wonAmount || Math.floor(amount * totalOdds),
+            totalOdds: realTotalOdds,
+            potentialPayout: data.wonAmount,
             status: 'pending'
         };
 
@@ -436,11 +437,15 @@ function checkTicketResult(ticket, simResults, serverData) {
 
     ticket.status = won ? 'won' : 'lost';
     
-    if (won) {
-        handleWin(ticket.potentialPayout, serverData);
-    } else {
-        handleLoss(ticket.amount, serverData);
-    }
+    // Close simulation before showing result
+    setTimeout(() => {
+        closeSim();
+        if (won) {
+            handleWin(ticket.potentialPayout, serverData);
+        } else {
+            handleLoss(ticket.amount, serverData);
+        }
+    }, 1500);
 
     saveTeamData();
     // After simulation, we can generate new matches for the next round
@@ -514,7 +519,8 @@ function closeSim() {
 
 function showWinOverlay(amount) {
     const overlay = document.getElementById('win-overlay');
-    document.getElementById('win-amount-large').textContent = `+${amount.toLocaleString()}`;
+    const payoutText = typeof amount === 'number' ? amount.toFixed(2) : amount;
+    document.getElementById('win-amount-large').textContent = `+${parseFloat(payoutText).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     overlay.classList.add('show');
     createConfetti();
 }

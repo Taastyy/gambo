@@ -46,9 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(typeof getBalanceSync === 'function') {
             const bal = getBalanceSync();
             if(balanceEl) balanceEl.textContent = bal.toFixed(2);
+            
+            // Task 20: Auto-adjust bet on load
+            if (bal < gameState.currentBet) {
+                gameState.currentBet = Math.max(1, Math.floor(bal));
+                updateBetDisplay();
+            }
         }
         updateUI();
-    }, 50);
+    }, 100);
 });
 
 function initDOM() {
@@ -186,7 +192,9 @@ async function startGame() {
         });
         const data = await res.json();
         if (!data.success) {
-            showMsg(data.error || 'Server Fehler', 'danger');
+            let errorMsg = data.error || 'Server Fehler';
+            if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+            showMsg(errorMsg, 'danger');
             gameState.state = GAME_STATE.WAITING;
             return;
         }

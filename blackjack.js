@@ -138,7 +138,14 @@ async function initializeGame() {
     initializeEventListeners();
     initializeStatsModal();
     await loadStats(); // Load stats from localStorage
-    syncBalance(); // Sync balance display with IndexedDB
+    const currentBalance = await getBalance(); // Sync balance and get it
+    
+    // Task 20: Auto-adjust bet on load
+    if (currentBalance < gameState.currentBet) {
+        gameState.currentBet = Math.max(1, Math.floor(currentBalance));
+        updateBetDisplay();
+    }
+    
     updateUI();
     showMessage('Welcome! Place your bet and click "Deal Cards"', '');
 }
@@ -929,8 +936,11 @@ async function dealGame() {
         const data = await res.json();
         
         if (!data.success) {
-            showMessage(data.error || 'Server error', 'error');
-            if (dealBtn) dealBtn.disabled = false;
+            let errorMsg = data.error || 'Server error';
+            if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+            showMessage(errorMsg, 'error');
+            gameState.state = GAME_STATE.WAITING; // Ensure state is correct
+            updateUI(); // This will re-enable the deal button correctly
             return;
         }
 
@@ -961,7 +971,8 @@ async function dealGame() {
         }
     } catch(e) {
         showMessage('Network error', 'error');
-        if (dealBtn) dealBtn.disabled = false;
+        gameState.state = GAME_STATE.WAITING;
+        updateUI();
     }
 }
 
@@ -1020,7 +1031,10 @@ async function sendAction(actionStr) {
         const data = await res.json();
         
         if (!data.success) {
-            showMessage(data.error || 'Server error', 'error');
+            let errorMsg = data.error || 'Server error';
+            if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+            showMessage(errorMsg, 'error');
+            updateUI(); 
             return;
         }
 

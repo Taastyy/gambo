@@ -142,6 +142,18 @@ document.addEventListener('DOMContentLoaded', function() {
     syncBalance();
     updateUI();
     showMessage('Wähle deinen Einsatz und starte!', '');
+
+    // Task 20: Auto-adjust bet on load
+    setTimeout(() => {
+        if (typeof getBalanceSync === 'function') {
+            const balance = getBalanceSync();
+            if (balance < game.state.currentBet) {
+                game.state.currentBet = Math.max(1, Math.floor(balance));
+                if (game.elements.betInput) game.elements.betInput.value = game.state.currentBet;
+                updateUI();
+            }
+        }
+    }, 100);
 });
 
 // ==========================================================================
@@ -298,7 +310,9 @@ async function startNewGame() {
         const data = await res.json();
         
         if (!data.success) {
-            showMessage(data.error || 'Server Fehler!', 'error');
+            let errorMsg = data.error || 'Server Fehler!';
+            if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+            showMessage(errorMsg, 'error');
             return;
         }
 

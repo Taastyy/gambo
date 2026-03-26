@@ -135,6 +135,19 @@ document.addEventListener('DOMContentLoaded', function () {
     startDecoLights();
     loadJackpot();
 
+    // Task 20: Auto-adjust bet on load
+    setTimeout(() => {
+        if (typeof getBalanceSync === 'function') {
+            const balance = getBalanceSync();
+            if (balance < currentBet) {
+                currentBet = balance;
+                if (currentBet < 1) currentBet = 1;
+                if (betInput) betInput.value = currentBet;
+                updateUI();
+            }
+        }
+    }, 100);
+
     // Stop autoroll when page is unloaded
     window.addEventListener('beforeunload', function () {
         if (isAutoroll) {
@@ -405,7 +418,9 @@ async function spin() {
     }
 
     if (!serverResult || !serverResult.success) {
-        showMessage(serverResult?.error || 'Server error', 'error');
+        let errorMsg = serverResult?.error || 'Server Fehler!';
+        if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+        showMessage(errorMsg, 'error');
         isSpinning = false;
         spinBtn.disabled = false;
         spinBtn.querySelector('.spin-text').textContent = 'DREHEN';
@@ -779,8 +794,13 @@ function addToHistory(result, bet) {
 
 // Update UI elements
 function updateUI() {
-    document.getElementById('current-bet').textContent = currentBet;
-    document.getElementById('total-wins').textContent = stats.totalWins;
+    if (document.getElementById('current-bet')) document.getElementById('current-bet').textContent = currentBet.toLocaleString();
+    if (document.getElementById('total-wins')) document.getElementById('total-wins').textContent = stats.totalWins.toLocaleString();
+    
+    // Task 5: Header Games (if exists)
+    if (document.getElementById('total-games')) document.getElementById('total-games').textContent = stats.totalGames;
+    
+    updateStatsUI();
 }
 
 // Update statistics UI

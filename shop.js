@@ -39,6 +39,12 @@
             description: 'Lass deine Nachrichten glitzern!'
         },
         {
+            id: 'rolex',
+            name: 'Rolex Submariner',
+            icon: '⌚',
+            description: 'Die Zeit läuft für dich - Ein zeitloser Klassiker am Handgelenk.'
+        },
+        {
             id: 'crown',
             name: 'Premium Krone',
             icon: '👑',
@@ -63,10 +69,28 @@
             description: 'Sammle Pokale für deine Gewinne!'
         },
         {
+            id: 'lamborghini',
+            name: 'Lamborghini Aventador',
+            icon: '🏎️',
+            description: 'Der Traum jedes Gamblers - Schnell, laut und extrem teuer.'
+        },
+        {
             id: 'diamond',
             name: 'Diamant',
             icon: '💎',
             description: 'Der wertvollste Edelstein im Casino!'
+        },
+        {
+            id: 'private_jet',
+            name: 'Privatjet',
+            icon: '✈️',
+            description: 'Flieg wie ein König - Überspringe die Schlange am Flughafen.'
+        },
+        {
+            id: 'thick_bmw',
+            name: 'Dicker BMW',
+            icon: '🚗',
+            description: 'Ein luxuriöser BMW für die Straße!'
         },
         {
             id: 'island_ticket',
@@ -79,12 +103,6 @@
             name: 'Ceo von Telekom werden',
             icon: '🎫',
             description: '51% Der Telekom Stimmenanteile um Ceo zu werden'
-        },
-        {
-            id: 'thick_bmw',
-            name: 'Dicker BMW',
-            icon: '🚗',
-            description: 'Ein luxuriöser BMW für die Straße!'
         }
     ];
 
@@ -92,14 +110,17 @@
         rainbow_avatar: 50000,
         golden_frame: 100000,
         sparkles: 75000,
+        rolex: 15000,
         crown: 250000,
         fire: 30000,
         rocket: 40000,
         trophy: 150000,
+        lamborghini: 250000,
         diamond: 500000,
+        private_jet: 1500000,
+        thick_bmw: 750000,
         island_ticket: 100000000,
-        telekom_ceo: 765000000000,
-        thick_bmw: 1500000
+        telekom_ceo: 765000000000
     };
 
     // =====================================================
