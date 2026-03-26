@@ -748,8 +748,27 @@ async function updateStockPrices() {
         });
         const pfData = await pfRes.json();
         if (pfData.success) {
-            portfolio = pfData.portfolio.long || {};
-            shortPortfolio = pfData.portfolio.short || {};
+            const serverLong = pfData.portfolio.long || {};
+            const serverShort = pfData.portfolio.short || {};
+            
+            // Legacy Sync Logic: If server is empty but local has items, sync to server
+            if (Object.keys(serverLong).length === 0 && Object.keys(portfolio).length > 0) {
+                console.log('Migrating local portfolio to server...');
+                const token = localStorage.getItem('casinoToken') || '';
+                fetch('/api/stocks/sync-legacy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ portfolio: { long: portfolio, short: shortPortfolio } })
+                }).then(r => r.json()).then(syncData => {
+                    if (syncData.success) {
+                        console.log('Sync complete!');
+                        syncMarketFromServer(); // Reload
+                    }
+                });
+            }
+
+            portfolio = serverLong;
+            shortPortfolio = serverShort;
         }
     } catch(e) { /* keep local */ }
 

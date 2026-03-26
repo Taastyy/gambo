@@ -224,6 +224,22 @@ function setupStocksRoutes(app, db, authenticateToken) {
             }
         });
     });
+
+    app.post('/api/stocks/sync-legacy', authenticateToken, (req, res) => {
+        const { portfolio: clientPf } = req.body;
+        if (!clientPf || typeof clientPf !== 'object') return res.status(400).json({error: 'Invalid data'});
+        db.get('SELECT portfolio FROM users WHERE id = ?', [req.user.id], (err, row) => {
+            if (err) return res.status(500).json({error: 'DB error'});
+            let serverPf;
+            try { serverPf = row && row.portfolio ? JSON.parse(row.portfolio) : { long: {}, short: {} }; } catch(e) { serverPf = { long: {}, short: {} }; }
+            if (Object.keys(serverPf.long || {}).length > 0 || Object.keys(serverPf.short || {}).length > 0) {
+                return res.status(400).json({error: 'Server hat bereits Daten.'});
+            }
+            db.run('UPDATE users SET portfolio = ? WHERE id = ?', [JSON.stringify(clientPf), req.user.id], () => {
+                res.json({ success: true, portfolio: clientPf });
+            });
+        });
+    });
 }
 
 module.exports = setupStocksRoutes;
