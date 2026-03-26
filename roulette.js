@@ -18,7 +18,7 @@ let state = {
     wheelAngle: 0     // current visual rotation in degrees
 };
 
-let stats = { games: 0, won: 0, lost: 0 };
+let stats = { games: 0, wins: 0, won: 0, lost: 0 };
 
 /* ---------- DOM ---------- */
 const canvas     = document.getElementById('wheel-canvas');
@@ -35,6 +35,28 @@ function init() {
     buildBoard();
     drawWheel(0);
     setupControls();
+    
+    // Task 20: Auto-adjust chip on load
+    setTimeout(() => {
+        if (typeof getBalanceSync === 'function') {
+            const balance = getBalanceSync();
+            if (balance < state.currentChip) {
+                // Find highest possible chip
+                const chips = [1, 5, 10, 25, 100, 500];
+                let best = 1;
+                for (const c of chips) {
+                    if (c <= balance) best = c;
+                }
+                state.currentChip = best;
+                // Update UI state
+                document.querySelectorAll('.chip-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.value) === best);
+                });
+            }
+        }
+        updateUI();
+    }, 100);
+
     updateUI();
 }
 
@@ -370,10 +392,18 @@ async function finishSpin(winNum, wonAmount, newBalance) {
     displayNum.textContent = winNum;
     displayNum.style.color = col === 'red' ? 'var(--red)' : (col === 'green' ? 'var(--green)' : 'var(--text)');
 
+    // Update Stats
+    stats.games++;
+    if (wonAmount > state.totalBet) {
+        stats.wins++;
+        stats.won += (wonAmount - state.totalBet);
+    } else {
+        stats.lost += state.totalBet;
+    }
+    saveStats();
+
     if (wonAmount > 0) {
         showToast('Gewonnen: ' + wonAmount + ' €');
-        stats.won += wonAmount;
-        saveStats();
     } else {
         showToast('Nix gewonnen!', true);
     }
@@ -413,6 +443,9 @@ function renderHistory() {
 }
 function updateUI() {
     document.getElementById('current-bet').textContent = state.totalBet;
+    if (document.getElementById('total-games')) document.getElementById('total-games').textContent = stats.games;
+    if (document.getElementById('total-wins')) document.getElementById('total-wins').textContent = stats.wins;
+    
     if (typeof getBalanceSync === 'function') {
         document.querySelectorAll('.balance-display').forEach(el => {
             el.textContent = Math.round(getBalanceSync());

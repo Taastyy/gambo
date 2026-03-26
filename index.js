@@ -7,12 +7,44 @@
 (function() {
     'use strict';
 
+    function updateProfileDisplay() {
+        const active = JSON.parse(localStorage.getItem('casinoActiveItems') || '{}');
+        const username = localStorage.getItem('casinoUsername') || 'Gast';
+        const displayUser = document.getElementById('display-username');
+        if (displayUser) displayUser.textContent = username;
+
+        const avatarIcon = document.getElementById('user-avatar-icon');
+        const frame = document.getElementById('user-frame');
+        
+        if (avatarIcon) {
+            if (active.avatar) {
+                // Find icon from item id (minimal way)
+                const items = [
+                    {id:'rainbow_avatar', icon:'🌈'}, {id:'sparkles', icon:'✨'}, 
+                    {id:'fire', icon:'🔥'}, {id:'rocket', icon:'🚀'}, {id:'crown', icon:'👑'}
+                ];
+                const item = items.find(i => i.id === active.avatar);
+                avatarIcon.textContent = item ? item.icon : '👤';
+            } else {
+                avatarIcon.textContent = '👤';
+            }
+        }
+
+        if (frame) {
+            frame.className = 'profile-frame';
+            if (active.frame === 'golden_frame') {
+                frame.classList.add('gold-frame');
+            }
+        }
+    }
+
     function checkAuth() {
         const token = localStorage.getItem('casinoToken');
         if (token) {
             document.getElementById('auth-section').style.display = 'none';
             document.getElementById('main-games-grid').style.display = 'grid';
             document.getElementById('user-controls').style.display = 'flex';
+            updateProfileDisplay();
             syncBalanceOnLoad();
         } else {
             document.getElementById('auth-section').style.display = 'block';
@@ -20,6 +52,9 @@
             document.getElementById('user-controls').style.display = 'none';
         }
     }
+
+    // Export so shop can trigger it
+    window.updateProfileDisplay = updateProfileDisplay;
 
     /**
      * Initialize the menu page

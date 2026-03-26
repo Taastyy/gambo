@@ -98,6 +98,7 @@
                 <div class="tracker-row"><span>Spiele</span><span id="stat-games">0</span></div>
                 <div class="tracker-row"><span>Gewonnen</span><span id="stat-wins">0</span></div>
                 <div class="tracker-row"><span>Profit</span><span id="stat-profit">0</span></div>
+                <button class="btn-secondary" onclick="showStatsModal()" style="margin-top:10px; width:100%">📊 STATISTIK</button>
             </div>
         </aside>
 
@@ -107,8 +108,28 @@
         </main>
     </div>
 
+    <div id="game-message" class="game-message" style="display:none"></div>
+    
     <div id="stats-modal-overlay" class="modal-overlay" style="display:none">
-        <span id="stats-balance" style="display:none">1000</span>
+        <div class="stats-modal">
+            <div class="stats-header">
+                <h2>📈 PLINKO STATS</h2>
+                <button onclick="hideStatsModal()">×</button>
+            </div>
+            <div class="stats-content">
+                <div class="stats-grid">
+                    <div class="stats-item"><span>Games</span><span id="stats-games">0</span></div>
+                    <div class="stats-item"><span>Wins</span><span id="stats-wins">0</span></div>
+                    <div class="stats-item"><span>Losses</span><span id="stats-losses">0</span></div>
+                    <div class="stats-item"><span>Max Mult</span><span id="stats-max-mult">0x</span></div>
+                    <div class="stats-item"><span>Max Win</span><span id="stats-max-win">0</span></div>
+                    <div class="stats-item"><span>Total Won</span><span id="stats-won">0</span></div>
+                    <div class="stats-item"><span>Total Lost</span><span id="stats-lost">0</span></div>
+                    <div class="stats-item"><span>Balance</span><span id="stats-balance">0</span></div>
+                </div>
+                <button class="btn-secondary" onclick="resetStats()">RESET STATS</button>
+            </div>
+        </div>
     </div>
 
     <script src="balance.js"></script>

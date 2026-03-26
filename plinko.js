@@ -475,7 +475,9 @@
             });
             const data = await res.json();
             if (!data.success) {
-                if(window.showMessage) window.showMessage(data.error || 'Server Fehler');
+                let errorMsg = data.error || 'Server Fehler';
+                if (errorMsg === 'Insufficient balance') errorMsg = 'Nicht genügend Guthaben!';
+                if(window.showMessage) window.showMessage(errorMsg, 'error');
                 return;
             }
 
@@ -546,12 +548,20 @@
         el = document.getElementById('current-bet'); if (el) el.textContent = bet;
         el = document.getElementById('stat-games'); if (el) el.textContent = stats.games;
         el = document.getElementById('stat-wins'); if (el) el.textContent = stats.wins;
-        var prof = stats.totalWon - stats.totalLost;
         el = document.getElementById('stat-profit');
         if (el) {
             el.textContent = (prof >= 0 ? '+' : '') + Math.round(prof);
             el.style.color = prof >= 0 ? '#00e676' : '#ff1744';
         }
+        
+        // Modal stats
+        el = document.getElementById('stats-games'); if (el) el.textContent = stats.games;
+        el = document.getElementById('stats-wins'); if (el) el.textContent = stats.wins;
+        el = document.getElementById('stats-losses'); if (el) el.textContent = stats.losses;
+        el = document.getElementById('stats-max-mult'); if (el) el.textContent = stats.maxMult + 'x';
+        el = document.getElementById('stats-max-win'); if (el) el.textContent = Math.round(stats.maxWin);
+        el = document.getElementById('stats-won'); if (el) el.textContent = Math.round(stats.totalWon);
+        el = document.getElementById('stats-lost'); if (el) el.textContent = Math.round(stats.totalLost);
         el = document.getElementById('stats-balance'); if (el) el.textContent = Math.round(bal);
     }
 
@@ -571,9 +581,26 @@
     };
 
     /* compat stubs */
-    window.showStatsModal = function () { };
-    window.hideStatsModal = function () { };
-    window.showMessage = function () { };
+    window.showStatsModal = function () {
+        var modal = document.getElementById('stats-modal-overlay');
+        if (modal) modal.style.display = 'flex';
+        ui();
+    };
+    window.hideStatsModal = function () {
+        var modal = document.getElementById('stats-modal-overlay');
+        if (modal) modal.style.display = 'none';
+    };
+    window.showMessage = function (msg, type) {
+        var el = document.getElementById('game-message');
+        if (el) {
+            el.textContent = msg;
+            el.className = 'game-message ' + (type || '');
+            el.style.display = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, 3000);
+        } else {
+            alert(msg);
+        }
+    };
     window.setBalls = function () { };
 
     /* ======= init ======= */
@@ -589,6 +616,19 @@
         loadStats();
         buildBoard();
         ui();
+
+        // Task 20: Auto-adjust bet on load
+        setTimeout(() => {
+            if (typeof getBalanceSync === 'function') {
+                const balance = getBalanceSync();
+                if (balance < bet) {
+                    bet = balance;
+                    if (bet < 1) bet = 1;
+                    document.getElementById('bet-input').value = bet;
+                    ui();
+                }
+            }
+        }, 100);
 
         document.addEventListener('keydown', function (e) {
             if (e.code === 'Space') { e.preventDefault(); window.dropBall(); }

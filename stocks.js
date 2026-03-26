@@ -872,7 +872,7 @@ async function syncMarketFromServer() {
                     localAsset.price = serverAsset.price;
                     if (!localAsset.history) localAsset.history = [];
                     localAsset.history.push(serverAsset.price);
-                    if (localAsset.history.length > 20) localAsset.history.shift();
+                    if (localAsset.history.length > 50) localAsset.history.shift();
                 }
             });
             renderStocks();

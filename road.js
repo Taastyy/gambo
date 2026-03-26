@@ -67,13 +67,13 @@ class RoadGame {
     reset() {
         const stepsCount = parseInt(game.elements.roadSteps.value) || CONFIG.ROAD_STEPS;
         this.state = {
-            currentBet: CONFIG.DEFAULT_BET,
+            currentBet: this.state.currentBet,
             stepsCount: stepsCount,
             currentStep: 0,
             isGameOver: false,
             isPlaying: false,
             currentMultiplier: 1.0,
-            potentialWin: CONFIG.DEFAULT_BET,
+            potentialWin: this.state.currentBet,
             crashPoint: null,
             gamesPlayed: this.state.gamesPlayed,
             wins: this.state.wins,
@@ -621,10 +621,17 @@ function triggerShakeAnimation() {
 function updateUI() {
     syncBalance();
     
-    game.elements.currentBet.textContent = game.state.currentBet;
-    game.elements.currentMultiplier.textContent = game.state.currentMultiplier.toFixed(2) + 'x';
-    game.elements.potentialWin.textContent = game.state.potentialWin;
+    if (game.elements.currentBet) game.elements.currentBet.textContent = game.state.currentBet;
     
+    const displayBet = document.getElementById('current-bet-display');
+    if (displayBet) displayBet.textContent = game.state.currentBet;
+
+    if (document.getElementById('total-games')) document.getElementById('total-games').textContent = game.state.gamesPlayed;
+    if (document.getElementById('total-wins')) document.getElementById('total-wins').textContent = game.state.wins;
+
+    if (game.elements.currentMultiplier) game.elements.currentMultiplier.textContent = game.state.currentMultiplier.toFixed(2) + 'x';
+    if (game.elements.potentialWin) game.elements.potentialWin.textContent = Math.round(game.state.potentialWin);
+
     // Button states
     game.elements.cashOutBtn.disabled = !game.state.isPlaying || game.state.currentStep === 0;
     game.elements.newGameBtn.disabled = game.state.isPlaying;

@@ -15,17 +15,22 @@
             <p>Wähle dein Lieblingsspiel und beginne zu spielen!</p>
             
             <div class="header-actions" id="user-controls" style="display:none;">
-                <a href="shop.html" class="shop-btn">
-                    🛒 Shop besuchen
-                </a>
-                <button id="reset-balance-btn" class="reset-btn">
-                    🔄 Balance Zurücksetzen
-                </button>
-                <button id="logout-btn" class="reset-btn" style="background:#ff4444; margin-left:10px;">
-                    🚪 Logout
-                </button>
-                <div class="balance-display">
-                    <span>💰 Balance: <span id="balance-amount">0</span></span>
+                <div class="user-profile-summary">
+                    <div id="user-avatar-container" class="avatar-container">
+                        <span id="user-avatar-icon">👤</span>
+                        <div id="user-frame" class="profile-frame"></div>
+                    </div>
+                    <div class="user-info">
+                        <span id="display-username" class="username-text">Gast</span>
+                        <div class="balance-display">
+                            <span>💰 Balance: <span id="balance-amount">0</span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <a href="shop.html" class="shop-btn">🛒 Shop</a>
+                    <button id="reset-balance-btn" class="reset-btn">🔄 Reset</button>
+                    <button id="logout-btn" class="logout-btn">🚪 Logout</button>
                 </div>
             </div>
         </header>

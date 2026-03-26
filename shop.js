@@ -265,31 +265,82 @@
         });
     }
 
+    const ACTIVE_ITEMS_KEY = 'casinoActiveItems';
+
+    function getActiveItems() {
+        try {
+            const stored = localStorage.getItem(ACTIVE_ITEMS_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch (e) { return {}; }
+    }
+
+    function toggleEquip(itemId) {
+        const active = getActiveItems();
+        const item = SHOP_ITEMS.find(i => i.id === itemId);
+        if (!item) return;
+
+        // Simple categories for toggling
+        let category = 'other';
+        if (itemId.includes('avatar')) category = 'avatar';
+        if (itemId.includes('frame')) category = 'frame';
+
+        if (active[category] === itemId) {
+            delete active[category];
+        } else {
+            active[category] = itemId;
+        }
+
+        localStorage.setItem(ACTIVE_ITEMS_KEY, JSON.stringify(active));
+        renderInventory();
+        if (typeof window.updateProfileDisplay === 'function') window.updateProfileDisplay();
+    }
+
     function renderInventory() {
         const inventoryGrid = document.getElementById('inventory-grid');
         if (!inventoryGrid) return;
 
-        const items = Object.entries(inventory);
+        const owned = [];
+        const storedOwned = localStorage.getItem(OWNED_ITEMS_KEY);
+        if (storedOwned) {
+            const parsed = JSON.parse(storedOwned);
+            parsed.forEach(id => {
+                const item = SHOP_ITEMS.find(i => i.id === id);
+                if (item) owned.push(item);
+            });
+        }
 
-        if (items.length === 0) {
+        if (owned.length === 0) {
             inventoryGrid.innerHTML = '<p class="empty-inventory">Dein Inventar ist noch leer. Kaufe Items im Shop!</p>';
             return;
         }
 
+        const active = getActiveItems();
         inventoryGrid.innerHTML = '';
 
-        items.forEach(([itemId, count]) => {
-            const item = SHOP_ITEMS.find(i => i.id === itemId);
-            if (item) {
-                const div = document.createElement('div');
-                div.className = 'inventory-item';
-                div.innerHTML = `
-                    <span class="icon">${item.icon}</span>
+        owned.forEach(item => {
+            const div = document.createElement('div');
+            
+            let category = 'other';
+            if (item.id.includes('avatar')) category = 'avatar';
+            if (item.id.includes('frame')) category = 'frame';
+            
+            const isEquipped = active[category] === item.id;
+            
+            div.className = `inventory-item ${isEquipped ? 'equipped' : ''}`;
+            div.innerHTML = `
+                <div class="item-visual">${item.icon}</div>
+                <div class="item-info">
                     <h4>${item.name}</h4>
-                    <span class="count">x${count}</span>
-                `;
-                inventoryGrid.appendChild(div);
-            }
+                    <button class="equip-btn ${isEquipped ? 'active' : ''}" data-id="${item.id}">
+                        ${isEquipped ? 'Ablegen' : 'Ausrüsten'}
+                    </button>
+                </div>
+            `;
+            inventoryGrid.appendChild(div);
+        });
+
+        inventoryGrid.querySelectorAll('.equip-btn').forEach(btn => {
+            btn.addEventListener('click', () => toggleEquip(btn.dataset.id));
         });
     }
 

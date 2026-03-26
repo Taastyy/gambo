@@ -399,6 +399,9 @@ function updateUI() {
     currentMultiplierEl.textContent = `${gameState.currentMultiplier.toFixed(2)}×`;
     potentialWinEl.textContent = `€${gameState.potentialWin.toFixed(2)}`;
     
+    if (document.getElementById('total-games')) document.getElementById('total-games').textContent = gameState.gamesPlayed;
+    if (document.getElementById('total-wins')) document.getElementById('total-wins').textContent = gameState.wins;
+
     betInputEl.disabled = gameState.state === GAME_STATE.PLAYING;
     minesCountSelect.disabled = gameState.state === GAME_STATE.PLAYING;
     

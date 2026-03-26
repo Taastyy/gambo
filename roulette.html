@@ -14,7 +14,14 @@
             <a href="index.html" class="nav-btn">← Menü</a>
             <button id="btn-stats" class="nav-btn">📊 Statistik</button>
             <div class="brand">Roulette</div>
-            <div class="stats-panel">
+                <div class="stat-pill">
+                    <span class="stat-label">Spiele</span>
+                    <span class="stat-value" id="total-games">0</span>
+                </div>
+                <div class="stat-pill">
+                    <span class="stat-label">Gewinne</span>
+                    <span class="stat-value" id="total-wins">0</span>
+                </div>
                 <div class="stat-pill">
                     <span class="stat-label">Balance</span>
                     <span class="stat-value gold balance-display" id="balance">0</span>
@@ -23,7 +30,6 @@
                     <span class="stat-label">Einsatz</span>
                     <span class="stat-value" id="current-bet">0</span>
                 </div>
-            </div>
         </header>
 
         <!-- Main Layout -->

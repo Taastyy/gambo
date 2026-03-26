@@ -40,6 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     generateNewMatches();
     updateUI();
     updateStatsUI();
+
+    // Task 20: Auto-adjust bet on load
+    setTimeout(() => {
+        if (typeof getBalanceSync === 'function') {
+            const balance = getBalanceSync();
+            if (balance < parseInt(slipBetInputEl.value)) {
+                slipBetInputEl.value = Math.max(1, Math.floor(balance));
+                updateSlipCalculations();
+            }
+        }
+    }, 100);
 });
 
 function initializeElements() {
@@ -497,13 +508,18 @@ function updateStatsUI() {
     const winsEl = document.getElementById('stats-wins');
     const lossesEl = document.getElementById('stats-losses');
     const highestWinEl = document.getElementById('stats-highest-win');
+    
+    // Header Stats
     const totalWinsHeaderEl = document.getElementById('total-wins');
+    const totalBetsHeaderEl = document.getElementById('total-bets');
 
     if (totalBetsEl) totalBetsEl.textContent = stats.totalBets;
     if (winsEl) winsEl.textContent = stats.wins;
     if (lossesEl) lossesEl.textContent = stats.losses;
-    if (highestWinEl) highestWinEl.textContent = stats.highestWin.toLocaleString();
-    if (totalWinsHeaderEl) totalWinsHeaderEl.textContent = stats.totalWinnings.toLocaleString();
+    if (highestWinEl) highestWinEl.textContent = Math.round(stats.highestWin).toLocaleString();
+    
+    if (totalWinsHeaderEl) totalWinsHeaderEl.textContent = stats.wins;
+    if (totalBetsHeaderEl) totalBetsHeaderEl.textContent = stats.totalBets;
 }
 
 function updateUI() {
