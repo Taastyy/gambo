@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const setupBlackjackRoutes = require('./blackjack');
 const setupStocksRoutes = require('./stocks');
+const { setupFootballRoutes } = require('./football_logic');
 const path = require('path');
 
 const app = express();
@@ -473,72 +474,7 @@ app.post('/api/plinko/play', authenticateToken, (req, res) => {
     });
 });
 
-const activeMatches = new Map();
-const TEAMS = [
-    { id: 'GER', name: 'Deutschland', emoji: 'ENG', strength: 85 }, // ENG flag bug fix here? Wait, user asked to fix it in football.js
-    { id: 'FRA', name: 'Frankreich', emoji: '🇫🇷', strength: 88 },
-    { id: 'ENG', name: 'England', emoji: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', strength: 86 },
-    { id: 'SPA', name: 'Spanien', emoji: '🇪🇸', strength: 84 },
-    { id: 'ITA', name: 'Italien', emoji: '🇮🇹', strength: 82 },
-    { id: 'BRA', name: 'Brasilien', emoji: '🇧🇷', strength: 89 },
-    { id: 'ARG', name: 'Argentinien', emoji: '🇦🇷', strength: 87 },
-    { id: 'POR', name: 'Portugal', emoji: '🇵🇹', strength: 83 },
-    { id: 'NED', name: 'Niederlande', emoji: '🇳🇱', strength: 81 },
-    { id: 'BEL', name: 'Belgien', emoji: '🇧🇪', strength: 80 }
-];
-
-function generateMatches() {
-    activeMatches.clear();
-    const shuffled = [...TEAMS].sort(() => 0.5 - Math.random());
-    for (let i = 0; i < shuffled.length; i += 2) {
-        if (!shuffled[i] || !shuffled[i+1]) break;
-        const home = shuffled[i];
-        const away = shuffled[i+1];
-        const diff = home.strength - away.strength;
-        let pWin = 0.45 + (diff / 100);
-        let pDraw = 0.25;
-        let pLoss = 0.30 - (diff / 100);
-        const margin = 1.05;
-        const id = Math.random().toString(36).substr(2, 9);
-        activeMatches.set(id, {
-            id, home, away,
-            odds: { '1': parseFloat((1/pWin*margin).toFixed(2)), 'X': parseFloat((1/pDraw*margin).toFixed(2)), '2': parseFloat((1/pLoss*margin).toFixed(2)) }
-        });
-    }
-}
-
-app.get('/api/football/matches', authenticateToken, (req, res) => {
-    if (activeMatches.size === 0) generateMatches();
-    res.json({ success: true, matches: Array.from(activeMatches.values()) });
-});
-
-app.post('/api/football/play', authenticateToken, (req, res) => {
-    const { amount, bets } = req.body; // bets: [{ matchId, pick }]
-    if (typeof amount !== 'number' || amount <= 0) return res.status(400).json({error: 'Invalid amount'});
-    if (!Array.isArray(bets) || bets.length === 0) return res.status(400).json({error: 'Invalid bets'});
-
-    let totalOdds = 1.0;
-    for (const b of bets) {
-        const match = activeMatches.get(b.matchId);
-        if (!match || !match.odds[b.pick]) return res.status(400).json({error: 'Invalid match or pick'});
-        totalOdds *= match.odds[b.pick];
-    }
-
-    db.get('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, row) => {
-        if(err || !row) return res.status(500).json({error: 'DB error'});
-        if(row.balance < amount) return res.status(400).json({error: 'Nicht genügend Guthaben!'});
-
-        const winProb = (1 / totalOdds) * 0.94; // 94% RTP
-        const isWin = Math.random() < winProb;
-        const wonAmount = isWin ? parseFloat((amount * totalOdds).toFixed(2)) : 0;
-        
-        const newBalance = Math.round(row.balance - amount + wonAmount);
-
-        db.run('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.user.id], () => {
-            res.json({ success: true, isWin, wonAmount, newBalance, totalOdds });
-        });
-    });
-});
+// --- FOOTBALL ROUTES MOVED TO MODULE ---
 
 app.post('/api/horse/play', authenticateToken, (req, res) => {
     const { amount, odds } = req.body;
@@ -707,6 +643,7 @@ app.post('/api/shop/buy', authenticateToken, (req, res) => {
 
 setupBlackjackRoutes(app, db, authenticateToken);
 setupStocksRoutes(app, db, authenticateToken);
+setupFootballRoutes(app, db, authenticateToken);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Casino backend running on port ${PORT}`));

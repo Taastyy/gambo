@@ -79,7 +79,8 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', function() {
                 localStorage.removeItem('casinoToken');
-                checkAuth();
+                localStorage.removeItem('casinoUsername');
+                location.reload();
             });
         }
 

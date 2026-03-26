@@ -14,8 +14,6 @@ const TEAMS = [
     { id: 'BEL', name: 'Belgien', emoji: '🇧🇪', strength: 80 }
 ];
 
-// Global storage for active matches (simplification: all users see same matches)
-// In a real app these would refresh every few minutes.
 const activeMatches = new Map();
 
 function createMatch(home, away) {
@@ -24,7 +22,6 @@ function createMatch(home, away) {
     let pDraw = 0.25;
     let pLoss = 0.30 - (diff / 100);
     
-    // Normalize pick odds
     const margin = 1.05;
     const oddsHome = parseFloat((1 / pWin * margin).toFixed(2));
     const oddsDraw = parseFloat((1 / pDraw * margin).toFixed(2));
@@ -45,7 +42,6 @@ function createMatch(home, away) {
 function setupFootballRoutes(app, db, authenticateToken) {
     // Get matches
     app.get('/api/football/matches', authenticateToken, (req, res) => {
-        // Refresh matches if empty or periodically
         if (activeMatches.size === 0) {
             const shuffled = [...TEAMS].sort(() => 0.5 - Math.random());
             for (let i = 0; i < shuffled.length; i += 2) {
@@ -57,8 +53,34 @@ function setupFootballRoutes(app, db, authenticateToken) {
         res.json({ success: true, matches: Array.from(activeMatches.values()) });
     });
 
-    // Replace the vulnerable route in server.js
-    // We will do this by NOT defining it here but editing server.js later
+    // Play/Bet securely
+    app.post('/api/football/play', authenticateToken, (req, res) => {
+        const { amount, bets } = req.body;
+        if (typeof amount !== 'number' || amount <= 0) return res.status(400).json({error: 'Invalid amount'});
+        if (!Array.isArray(bets) || bets.length === 0) return res.status(400).json({error: 'Invalid bets'});
+
+        let totalOdds = 1.0;
+        for (const b of bets) {
+            const match = activeMatches.get(b.matchId);
+            if (!match || !match.odds[b.pick]) return res.status(400).json({error: 'Ungültige Match-ID oder Wette!'});
+            totalOdds *= match.odds[b.pick];
+        }
+
+        db.get('SELECT balance FROM users WHERE id = ?', [req.user.id], (err, row) => {
+            if(err || !row) return res.status(500).json({error: 'DB error'});
+            if(row.balance < amount) return res.status(400).json({error: 'Nicht genügend Guthaben!'});
+
+            const winProb = (1 / totalOdds) * 0.94; // 94% RTP
+            const isWin = Math.random() < winProb;
+            const wonAmount = isWin ? parseFloat((amount * totalOdds).toFixed(2)) : 0;
+            
+            const newBalance = Math.round(row.balance - amount + wonAmount);
+
+            db.run('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.user.id], () => {
+                res.json({ success: true, isWin, wonAmount, newBalance, totalOdds });
+            });
+        });
+    });
 }
 
 module.exports = { setupFootballRoutes, activeMatches };
